@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Text Preview</title>
+  <style>
+    body{font-family:sans-serif;margin:0;padding:1rem;max-width:600px;margin:auto}
+    label{display:block;margin:.5rem 0.2rem}
+    input,select,button{width:100%;padding:.5rem;margin-bottom:.5rem}
+    canvas{width:100%;border:1px solid #ccc;margin-top:1rem}
+   .row{display:flex;gap:.5rem}
+   .row>*{flex:1}
+  </style>
+  <!-- your fonts -->
+  <style>
+    @font-face{font-family:'Above-the-beyond-script';src:url('fonts/Above-the-beyond-script.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'AbramoScript';src:url('fonts/AbramoScript.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'AdleryProSwash';src:url('fonts/AdleryProSwash.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'AlexBrush-Regular';src:url('fonts/AlexBrush-Regular.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'Belwe-Condensed';src:url('fonts/Belwe-Condensed.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'BerkshireSwash-Regular';src:url('fonts/BerkshireSwash-Regular.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'PlayfairDisplay-Black';src:url('fonts/PlayfairDisplay-Black.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'Poppins-ExtraBold';src:url('fonts/Poppins-ExtraBold.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'Roboto-Black';src:url('fonts/Roboto-Black.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'White-Apricot';src:url('fonts/White-Apricot.woff2') format('woff2');font-display:swap}
+    /* add the rest of your 27 fonts the same way */
+  </style>
+</head>
+<body>
+  <h2>Preview Generator</h2>
+  <div id="auth">
+    <input id="email" placeholder="Email"><input id="password" type="password" placeholder="Password">
+    <button id="login">Login / Sign up</button>
+  </div>
+
+  <div id="app" style="display:none">
+    <label>Customer name</label><input id="custName">
+    <label>Phone</label><input id="custPhone">
+    <label>Due date</label><input id="dueDate" type="date">
+    <label>Search product</label><input id="search" placeholder="Type product name">
+    <div id="productList"></div>
+    <canvas id="cv" width="800" height="800"></canvas>
+    <label>Text</label><input id="txt" placeholder="Type preview text">
+    <label>Font</label><select id="font">
+      <option>AdleryPro</option><option>AlexBrush</option><!-- add the rest -->
+    </select>
+    <label>Size</label><input id="size" type="range" min="8" max="200" value="24"><span id="sizeVal">24</span>
+    <label>Direction</label><select id="dir"><option>horizontal</option><option>vertical-down</option><option>vertical-up</option></select>
+    <label>Vertical align</label><select id="valign"><option>top</option><option selected>middle</option><option>bottom</option></select>
+    <label>Vertical offset</label><input id="voff" type="range" min="-300" max="300" value="0">
+    <div class="row"><button id="reset">Reset</button><button id="download">Download PNG</button></div>
+    <div class="row"><button id="save">Save draft</button><button id="submit">Submit (PDF)</button></div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+<script>
+const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let user=null, product=null, img=new Image();
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+
+document.getElementById('login').onclick=async()=>{
+  const email=emailEl.value, password=passwordEl.value;
+  let {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){await sb.auth.signUp({email,password});}
+  location.reload();
+};
+
+sb.auth.getUser().then(({data})=>{
+  if(data.user){user=data.user;document.getElementById('auth').style.display='none';document.getElementById('app').style.display='block';loadProducts();}
+});
+
+async function loadProducts(){
+  const {data}=await sb.from('products').select('*').order('name');
+  const list=document.getElementById('productList');
+  function render(filter=''){
+    list.innerHTML=data.filter(p=>p.name.toLowerCase().includes(filter.toLowerCase()))
+     .map(p=>`<button data-id="${p.id}" data-url="${p.image_url}">${p.name}</button>`).join('');
+  }
+  render();
+  document.getElementById('search').oninput=e=>render(e.target.value);
+  list.onclick=e=>{
+    if(e.target.tagName==='BUTTON'){
+      product={id:e.target.dataset.id,url:e.target.dataset.url};
+      img.src=product.url;
+    }
+  };
+}
+img.onload=draw;
+
+['txt','font','size','dir','valign','voff'].forEach(id=>{
+  document.getElementById(id).oninput=draw;
+});
+document.getElementById('size').oninput=e=>{document.getElementById('sizeVal').textContent=e.target.value;draw();}
+document.getElementById('reset').onclick=()=>{document.getElementById('valign').value='middle';document.getElementById('voff').value=0;draw();}
+document.getElementById('download').onclick=()=>{const a=document.createElement('a');a.href=cv.toDataURL();a.download='preview.png';a.click();}
+document.getElementById('save').onclick=()=>saveOrder('draft');
+document.getElementById('submit').onclick=()=>saveOrder('submitted');
+
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(img.src) ctx.drawImage(img,0,0,cv.width,cv.height);
+  const txt=document.getElementById('txt').value||'';
+  const font=document.getElementById('font').value;
+  const size=+document.getElementById('size').value;
+  const dir=document.getElementById('dir').value;
+  const valign=document.getElementById('valign').value;
+  const voff=+document.getElementById('voff').value;
+  ctx.fillStyle='rgb(128,128,128)'; ctx.textAlign='center'; ctx.font=`${size}px ${font}`;
+  let x=cv.width/2, y=cv.height/2+voff;
+  if(valign==='top') y=size+10+voff;
+  if(valign==='bottom') y=cv.height-10+voff;
+  if(dir==='horizontal'){ctx.fillText(txt,x,y);}
+  else{
+    const chars=txt.split(''); const step=size*1.1;
+    let startY=y-(chars.length-1)*step/2;
+    if(dir==='vertical-up'){chars.reverse();}
+    chars.forEach((c,i)=>{ctx.fillText(c,x,startY+i*step);});
+  }
+}
+
+async function saveOrder(status){
+  const pngBlob=await new Promise(r=>cv.toBlob(r));
+  const pngName=`${crypto.randomUUID()}.png`;
+  await sb.storage.from('previews').upload(pngName,pngBlob,{upsert:true});
+  const pngUrl=`${SUPABASE_URL}/storage/v1/object/public/previews/${pngName}`;
+  let pdfUrl=null;
+  if(status==='submitted'){
+    const pdfDoc=await PDFLib.PDFDocument.create();
+    const page=pdfDoc.addPage([cv.width,cv.height]);
+    const pngBytes=await pngBlob.arrayBuffer();
+    const pngImg=await pdfDoc.embedPng(pngBytes);
+    page.drawImage(pngImg,{x:0,y:0,width:cv.width,height:cv.height});
+    const pdfBytes=await pdfDoc.save();
+    const pdfName=`${crypto.randomUUID()}.pdf`;
+    await sb.storage.from('previews').upload(pdfName,new Blob([pdfBytes]),{upsert:true});
+    pdfUrl=`${SUPABASE_URL}/storage/v1/object/public/previews/${pdfName}`;
+  }
+  await sb.from('orders').insert({
+    user_id:user.id,
+    customer_name:document.getElementById('custName').value,
+    customer_phone:document.getElementById('custPhone').value,
+    due_date:document.getElementById('dueDate').value,
+    product_id:product?.id,
+    preview_text:document.getElementById('txt').value,
+    font_family:document.getElementById('font').value,
+    font_size:+document.getElementById('size').value,
+    text_direction:document.getElementById('dir').value,
+    vertical_align:document.getElementById('valign').value,
+    vertical_offset:+document.getElementById('voff').value,
+    preview_png_url:pngUrl,
+    preview_pdf_url:pdfUrl,
+    status
+  });
+  alert(status==='draft'?'Saved!':'Submitted!');
+}
+</script>
+</body>
+</html>
