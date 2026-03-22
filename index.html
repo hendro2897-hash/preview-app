@@ -53,111 +53,86 @@
     <div class="row"><button id="save">Save draft</button><button id="submit">Submit (PDF)</button></div>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
 <script>
-const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let user=null, product=null, img=new Image();
-const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  const authSection = document.getElementById('auth');
+  const appSection = document.getElementById('app');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const signInBtn = document.getElementById('signin');
+  const signUpBtn = document.getElementById('signup');
+  const signOutBtn = document.getElementById('signout');
+  const userEmailSpan = document.getElementById('userEmail');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const bg = document.getElementById('bg');
+  const textInput = document.getElementById('text');
+  const textColorInput = document.getElementById('textColor');
+  const downloadBtn = document.getElementById('download');
 
-document.getElementById('login').onclick=async()=>{
-  const email=emailEl.value, password=passwordEl.value;
-  let {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error){await sb.auth.signUp({email,password});}
-  location.reload();
-};
+  const font = new FontFace('AdleryPro', 'url(fonts/AdleryPro.woff2)');
+  font.load().then(f => document.fonts.add(f)).then(draw);
 
-sb.auth.getUser().then(({data})=>{
-  if(data.user){user=data.user;document.getElementById('auth').style.display='none';document.getElementById('app').style.display='block';loadProducts();}
-});
-
-async function loadProducts(){
-  const {data}=await sb.from('products').select('*').order('name');
-  const list=document.getElementById('productList');
-  function render(filter=''){
-    list.innerHTML=data.filter(p=>p.name.toLowerCase().includes(filter.toLowerCase()))
-     .map(p=>`<button data-id="${p.id}" data-url="${p.image_url}">${p.name}</button>`).join('');
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = textColorInput.value;
+    ctx.font = '96px "AdleryPro", cursive';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(textInput.value || 'your name', canvas.width/2, canvas.height/2);
   }
-  render();
-  document.getElementById('search').oninput=e=>render(e.target.value);
-  list.onclick=e=>{
-    if(e.target.tagName==='BUTTON'){
-      product={id:e.target.dataset.id,url:e.target.dataset.url};
-      img.src=product.url;
-    }
-  };
-}
-img.onload=draw;
+  bg.onload = draw;
+  textInput.addEventListener('input', draw);
+  textColorInput.addEventListener('input', draw);
 
-['txt','font','size','dir','valign','voff'].forEach(id=>{
-  document.getElementById(id).oninput=draw;
-});
-document.getElementById('size').oninput=e=>{document.getElementById('sizeVal').textContent=e.target.value;draw();}
-document.getElementById('reset').onclick=()=>{document.getElementById('valign').value='middle';document.getElementById('voff').value=0;draw();}
-document.getElementById('download').onclick=()=>{const a=document.createElement('a');a.href=cv.toDataURL();a.download='preview.png';a.click();}
-document.getElementById('save').onclick=()=>saveOrder('draft');
-document.getElementById('submit').onclick=()=>saveOrder('submitted');
-
-function draw(){
-  ctx.clearRect(0,0,cv.width,cv.height);
-  if(img.src) ctx.drawImage(img,0,0,cv.width,cv.height);
-  const txt=document.getElementById('txt').value||'';
-  const font=document.getElementById('font').value;
-  const size=+document.getElementById('size').value;
-  const dir=document.getElementById('dir').value;
-  const valign=document.getElementById('valign').value;
-  const voff=+document.getElementById('voff').value;
-  ctx.fillStyle='rgb(128,128,128)'; ctx.textAlign='center'; ctx.font=`${size}px ${font}`;
-  let x=cv.width/2, y=cv.height/2+voff;
-  if(valign==='top') y=size+10+voff;
-  if(valign==='bottom') y=cv.height-10+voff;
-  if(dir==='horizontal'){ctx.fillText(txt,x,y);}
-  else{
-    const chars=txt.split(''); const step=size*1.1;
-    let startY=y-(chars.length-1)*step/2;
-    if(dir==='vertical-up'){chars.reverse();}
-    chars.forEach((c,i)=>{ctx.fillText(c,x,startY+i*step);});
-  }
-}
-
-async function saveOrder(status){
-  const pngBlob=await new Promise(r=>cv.toBlob(r));
-  const pngName=`${crypto.randomUUID()}.png`;
-  await sb.storage.from('previews').upload(pngName,pngBlob,{upsert:true});
-  const pngUrl=`${SUPABASE_URL}/storage/v1/object/public/previews/${pngName}`;
-  let pdfUrl=null;
-  if(status==='submitted'){
-    const pdfDoc=await PDFLib.PDFDocument.create();
-    const page=pdfDoc.addPage([cv.width,cv.height]);
-    const pngBytes=await pngBlob.arrayBuffer();
-    const pngImg=await pdfDoc.embedPng(pngBytes);
-    page.drawImage(pngImg,{x:0,y:0,width:cv.width,height:cv.height});
-    const pdfBytes=await pdfDoc.save();
-    const pdfName=`${crypto.randomUUID()}.pdf`;
-    await sb.storage.from('previews').upload(pdfName,new Blob([pdfBytes]),{upsert:true});
-    pdfUrl=`${SUPABASE_URL}/storage/v1/object/public/previews/${pdfName}`;
-  }
-  await sb.from('orders').insert({
-    user_id:user.id,
-    customer_name:document.getElementById('custName').value,
-    customer_phone:document.getElementById('custPhone').value,
-    due_date:document.getElementById('dueDate').value,
-    product_id:product?.id,
-    preview_text:document.getElementById('txt').value,
-    font_family:document.getElementById('font').value,
-    font_size:+document.getElementById('size').value,
-    text_direction:document.getElementById('dir').value,
-    vertical_align:document.getElementById('valign').value,
-    vertical_offset:+document.getElementById('voff').value,
-    preview_png_url:pngUrl,
-    preview_pdf_url:pdfUrl,
-    status
+  downloadBtn.addEventListener('click', ()=>{
+    const a = document.createElement('a');
+    a.download = 'preview.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
   });
-  alert(status==='draft'?'Saved!':'Submitted!');
-}
+
+  async function refresh(){
+    const { data: { user } } = await supabase.auth.getUser();
+    if(user){
+      authSection.classList.add('hidden');
+      appSection.classList.remove('hidden');
+      userEmailSpan.textContent = user.email || '';
+    }else{
+      authSection.classList.remove('hidden');
+      appSection.classList.add('hidden');
+    }
+  }
+  signInBtn.addEventListener('click', async ()=>{
+    signInBtn.disabled = true;
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailInput.value.trim(),
+      password: passwordInput.value
+    });
+    if(error) alert(error.message);
+    signInBtn.disabled = false;
+    refresh();
+  });
+  signUpBtn.addEventListener('click', async ()=>{
+    signUpBtn.disabled = true;
+    const { error } = await supabase.auth.signUp({
+      email: emailInput.value.trim(),
+      password: passwordInput.value
+    });
+    if(error) alert(error.message);
+    else alert('Check your email for confirmation (if enabled).');
+    signUpBtn.disabled = false;
+    refresh();
+  });
+  signOutBtn.addEventListener('click', async ()=>{
+    await supabase.auth.signOut();
+    refresh();
+  });
+  refresh();
 </script>
 </body>
 </html>
