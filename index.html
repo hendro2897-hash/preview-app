@@ -180,6 +180,19 @@
   const refreshProducts = document.getElementById('refreshProducts');
   const adminStatus = document.getElementById('adminStatus');
 
+  // initial state
+submitBtn.disabled = true;
+
+function updateSubmitState(){
+  const missing = validateForm();
+  submitBtn.disabled = missing.length > 0;
+  statusEl.textContent = missing.length ? `Missing: ${missing.join(', ')}` : '';
+}
+['input','change'].forEach(evt=>{
+  [salesperson,custName,custPhone,dueDate,productSel,previewText,fontFamilySel,directionSel,valignSel,valignOffset]
+    .forEach(el=> el.addEventListener(evt, updateSubmitState));
+});
+  
   const TEXT_COLOR = 'rgb(128,128,128)';
   const BUCKET = 'products';
 
@@ -223,6 +236,7 @@
     if(productItems[0]){
       bg.crossOrigin = 'anonymous';
       bg.src = productItems[0].url + '?v=' + Date.now();
+      updateSubmitState();
     }
   }
   function renderProducts(filter=''){
@@ -371,7 +385,24 @@
     alert('Thank you for your submission!');
     statusEl.textContent = 'Saved to Supabase.';
   });
-
+  
+function getSelItem(){
+  return productItems.find(p => p.path === productSel.value) || null;
+}
+function validateForm(){
+  const errors = [];
+  if(!(salesperson.value||'').trim()) errors.push('Salesperson name');
+  if(!(custName.value||'').trim()) errors.push('Customer name');
+  if(!(custPhone.value||'').trim()) errors.push('Customer phone');
+  if(!dueDate.value) errors.push('Due date');
+  if(!getSelItem()) errors.push('Product');
+  if(!(previewText.value||'').trim()) errors.push('Text for preview');
+  if(!fontFamilySel.value) errors.push('Font type');
+  if(!directionSel.value) errors.push('Text direction');
+  if(!valignSel.value) errors.push('Vertical alignment');
+  return errors;
+}
+  
   async function isAdmin(userId){
     const { data } = await sb.from('profiles').select('is_admin').eq('user_id', userId).maybeSingle();
     return!!data?.is_admin;
