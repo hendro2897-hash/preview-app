@@ -66,49 +66,104 @@
   const textColorInput = document.getElementById('textColor');
   const downloadBtn = document.getElementById('download');
 
-  const fonts = [
-  new FontFace('AboveTheBeyond', 'url(fonts/Above-the-beyond-script.woff2)'),
-  new FontFace('AbamoScript', 'url(fonts/AbamoScript.woff2)'),
-  new FontFace('AdleryProSwash', 'url(fonts/AdleryProSwash.woff2)'),
-  new FontFace('AlexBrush', 'url(fonts/AlexBrush-Regular.woff2)'),
-  new FontFace('BelweCondensed', 'url(fonts/Belwe-Condensed.woff2)'),
-  new FontFace('BerkshireSwash', 'url(fonts/BerkshireSwash-Regular.woff2)'),
-  new FontFace('PlayfairDisplay', 'url(fonts/PlayfairDisplay-Black.woff2)', { weight: '900' }),
-  new FontFace('Poppins', 'url(fonts/Poppins-ExtraBold.woff2)', { weight: '800' }),
-  new FontFace('Roboto', 'url(fonts/Roboto-Black.woff2)', { weight: '900' }),
-  new FontFace('WhiteApricot', 'url(fonts/White-Apricot.woff2)')
+const fontDefs = [
+  // OpenType Fonts (.otf)
+  ['AbramoScript', 'fonts/AbramoScript.otf', { format: 'opentype' }],
+  ['MagnoliaScript', 'fonts/MagnoliaScript.otf', { format: 'opentype' }],
+  ['NexaScript', 'fonts/NexaScript.otf', { format: 'opentype' }],
+  ['WhiteApricot', 'fonts/White-Apricot.otf', { format: 'opentype' }],
+
+  // TrueType Fonts (.ttf)
+  ['AboveTheBeyond', 'fonts/Above-the-beyond-script.ttf', { format: 'truetype' }],
+  ['AdleryProSwash', 'fonts/AdleryProSwash.ttf', { format: 'truetype' }],
+  ['AlexBrush', 'fonts/AlexBrush-Regular.ttf', { format: 'truetype' }],
+  ['BelweCondensed', 'fonts/Belwe-Condensed.ttf', { format: 'truetype' }],
+  ['BerkshireSwash', 'fonts/BerkshireSwash-Regular.ttf', { format: 'truetype' }],
+  ['GloriaHallelujah', 'fonts/GloriaHallelujah.ttf', { format: 'truetype' }],
+  ['HughIsLife', 'fonts/Hugh-is-Life.ttf', { format: 'truetype' }], // Renamed 'Hugh-is-Life' to 'HughIsLife' for easier JS access
+  ['LifelogoEasy', 'fonts/Lifelogo-Easy.ttf', { format: 'truetype' }], // Renamed 'Lifelogo-Easy' to 'LifelogoEasy'
+  ['MoonTime', 'fonts/MoonTime-Regular.ttf', { format: 'truetype' }], // Renamed 'MoonTime-Regular' to 'MoonTime'
+  ['PlayfairDisplay', 'fonts/PlayfairDisplay-Black.ttf', { weight: '900', format: 'truetype' }], // Added weight for Playfair
+  ['Poppins', 'fonts/Poppins-Black.ttf', { weight: '900', format: 'truetype' }], // Added weight for Poppins
+  ['Roboto', 'fonts/Roboto-Black.ttf', { weight: '900', format: 'truetype' }], // Added weight for Roboto
+  ['RumblebraveScript', 'fonts/Rumble-brave-script-Italic.ttf', { style: 'italic', format: 'truetype' }] // Renamed 'Rumble-brave-script-Italic' to 'RumblebraveScript' and added style
 ];
 
-Promise.all(fonts.map(f => f.load()))
-  .then(loaded => loaded.forEach(f => document.fonts.add(f)))
-  .then(draw)
-  .catch(err => console.error('Font load error:', err));
+// This part should be in your main script where you initialize your app
+// and run your `draw()` function.
+Promise.allSettled(
+  fontDefs.map(([name, url, options = {}]) =>
+    new FontFace(name, `url(${url})`, options).load()
+      .then(f => {
+        document.fonts.add(f);
+        console.log(`Font loaded: ${name}`);
+        return name;
+      })
+      .catch(e => {
+        console.warn(`Failed to load font ${name} from ${url}:`, e);
+        throw new Error(`Font load error for ${name}`); // Re-throw to make it rejected in allSettled
+      })
+  )
+)
+.then(results => {
+  results.forEach(r => {
+    if (r.status === 'rejected') {
+      console.error(r.reason); // Log the specific font error
+    }
+  });
+  // Call your drawing function here, ensuring fonts are loaded before drawing
+  // This `draw` function should use your `ctx`
+  draw();
+})
+.catch(error => {
+  console.error("One or more fonts failed to load:", error);
+  // You might want to call draw() anyway with fallback fonts or display a message
+  draw();
+});
 
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = textColorInput.value;
+// --- How to use in your canvas context (ctx) ---
+
+// Assuming 'ctx' is your 2D rendering context for the canvas
+// Example: const canvas = document.getElementById('myCanvas');
+//          const ctx = canvas.getContext('2d');
+
+function draw() {
+  // Clear canvas or draw background first
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Example usage of some of your fonts:
+
+  ctx.fillStyle = 'black';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // choose the family you want to use for the text:
-  ctx.font = '96px "AlexBrush"';
-  // other options you can swap in:
-  // ctx.font = '96px "AboveTheBeyond"';
-  // ctx.font = '96px "AbamoScript"';
-  // ctx.font = '96px "AdleryProSwash"';
-  // ctx.font = '96px "BelweCondensed"';
-  // ctx.font = '96px "BerkshireSwash"';
-  // ctx.font = '900 96px "PlayfairDisplay"';
-  // ctx.font = '800 96px "Poppins"';
-  // ctx.font = '900 96px "Roboto"';
-  // ctx.font = '96px "WhiteApricot"';
+  // AbramoScript (OpenType)
+  ctx.font = '80px AbramoScript';
+  ctx.fillText('Hello Abramo!', canvas.width / 2, 100);
 
-  ctx.fillText(textInput.value || 'your name', canvas.width/2, canvas.height/2);
+  // AlexBrush (TrueType)
+  ctx.font = '60px AlexBrush';
+  ctx.fillText('Beautiful AlexBrush', canvas.width / 2, 200);
+
+  // PlayfairDisplay (TrueType, with weight specified in definition)
+  ctx.font = '900 70px PlayfairDisplay'; // '900' matches the weight in fontDefs
+  ctx.fillText('Bold Playfair', canvas.width / 2, 300);
+
+  // Poppins (TrueType, with weight specified in definition)
+  ctx.font = '900 50px Poppins'; // '900' matches the weight in fontDefs
+  ctx.fillText('Poppins Black Text', canvas.width / 2, 400);
+
+  // If you define `weight` in `FontFace` options, you can use it like this:
+  ctx.font = 'italic 70px RumblebraveScript'; // 'italic' matches the style
+  ctx.fillText('Rumblebrave Italic', canvas.width / 2, 500);
+
+  // For any font without specific weight/style in its definition:
+  ctx.font = 'normal 40px MagnoliaScript';
+  ctx.fillText('Normal Magnolia', canvas.width / 2, 600);
 }
-  bg.onload = draw;
-  textInput.addEventListener('input', draw);
-  textColorInput.addEventListener('input', draw);
+
+// Make sure your `draw` function is called after the fonts have loaded
+// or after `Promise.allSettled` completes, as shown above.
 
   downloadBtn.addEventListener('click', ()=>{
     const a = document.createElement('a');
