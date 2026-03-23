@@ -118,9 +118,10 @@
       <canvas id="canvas" width="1080" height="1350"></canvas>
       <img id="bg" alt="" style="display:none" crossorigin="anonymous" />
       <div class="row" style="margin-top:10px">
-        <button id="downloadPng" class="btn">Save as PNG</button>
-        <button id="submitBtn" class="btn">Submit</button>
-      </div>
+  <button class="btn" id="download">Save as PNG</button>
+  <button class="btn secondary" id="downloadPdf">Download PDF</button>
+  <span class="muted">Filename: <code id="fname"></code></span>
+</div>
       <div class="hint" id="status"></div>
     </div>
   </div>
@@ -165,7 +166,8 @@
   const downloadPng = document.getElementById('downloadPng');
   const submitBtn = document.getElementById('submitBtn');
   const statusEl = document.getElementById('status');
-
+  const downloadPdfBtn = document.getElementById('downloadPdf');
+  
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
   const refreshProducts = document.getElementById('refreshProducts');
@@ -282,24 +284,35 @@ productSel.addEventListener('change', ()=>{
   });
 
   submitBtn.addEventListener('click', async ()=>{
-    statusEl.textContent = 'Submitting…';
-    const { data: { user } } = await sb.auth.getUser(); if(!user){ alert('Please login'); return; }
-    const item = productItems.find(p=>p.path===productSel.value);
-    const payload = {
-      user_id: user.id,
-      salesperson: salesperson.value || null,
-      customer_name: custName.value || null,
-      customer_phone: custPhone.value || null,
-      due_date: dueDate.value || null,
-      product: item?.name || null,
-      preview_text: previewText.value || 'Your Text',
-      font_family: fontFamilySel.value,
-      font_size: parseInt(fontSize.value,10),
-      direction: directionSel.value,
-      valign: valignSel.value,
-      valign_offset: parseInt(valignOffset.value,10),
-      text_color: TEXT_COLOR
-    };
+  const payload = collectPayload();
+  if(!payload.productPath){ alert('Please select a product.'); return; }
+  const { error } = await sb.from('orders').insert({
+    user_id: session.user.id,
+    product_path: payload.productPath,
+    product_name: payload.productName,
+    text_main: payload.text,
+    text_color: payload.color,
+    font_family: payload.font,
+    font_size: payload.size,
+    align: payload.align,
+    scale: payload.scale,
+    offset_x: payload.offx,
+    offset_y: payload.offy,
+    canvas_w: payload.canvasW,
+    canvas_h: payload.canvasH,
+    filename: payload.filename
+  });
+  if(error){ alert('Submit failed: '+error.message); return; }
+  alert('Thank you for your submission!');
+});
+  downloadPdfBtn.addEventListener('click', async ()=>{
+  const payload = collectPayload();
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation:'p', unit:'pt', format:[payload.canvasW, payload.canvasH] });
+  const dataUrl = canvas.toDataURL('image/png');
+  pdf.addImage(dataUrl, 'PNG', 0, 0, payload.canvasW, payload.canvasH);
+  pdf.save(payload.filename.replace(/\.png$/i,'') + '.pdf');
+});
     const { error } = await sb.from('orders').insert(payload);
     if(error){ console.error(error); statusEl.textContent = 'Save failed: ' + error.message; return; }
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' }); const pageW = pdf.internal.pageSize.getWidth();
