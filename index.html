@@ -116,7 +116,7 @@
       </div>
 
       <canvas id="canvas" width="1080" height="1350"></canvas>
-      <img id="bg" alt="" style="display:none" />
+      <img id="bg" alt="" style="display:none" crossorigin="anonymous" />
       <div class="row" style="margin-top:10px">
         <button id="downloadPng" class="btn">Save as PNG</button>
         <button id="submitBtn" class="btn">Submit</button>
@@ -211,7 +211,10 @@
       return { name, path: f.name, url: pub.publicUrl };
     });
     renderProducts(productSearch.value);
-    if(productItems[0]) bg.src = productItems[0].url;
+if(productItems[0]){
+  bg.crossOrigin = 'anonymous';
+  bg.src = productItems[0].url + '?v=' + Date.now();
+}
   }
   function renderProducts(filter=''){
     const q = filter.trim().toLowerCase();
@@ -220,10 +223,13 @@
     if(list[0]) bg.src = productItems.find(p=>p.path===list[0].path)?.url || '';
   }
   productSearch.addEventListener('input', ()=>renderProducts(productSearch.value));
-  productSel.addEventListener('change', ()=>{
-    const item = productItems.find(p=>p.path===productSel.value);
-    if(item) bg.src = item.url;
-  });
+productSel.addEventListener('change', ()=>{
+  const item = productItems.find(p=>p.path===productSel.value);
+  if(item){
+    bg.crossOrigin = 'anonymous';
+    bg.src = item.url + (item.url.includes('?')? '&' : '?') + 'v=' + Date.now();
+  }
+});
 
   function baseY(){
     const h = canvas.height;
