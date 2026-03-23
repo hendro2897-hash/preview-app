@@ -17,18 +17,18 @@
 
   <style>
     body{font-family:sans-serif;margin:0;background:#f5f5f5;color:#111}
-  .wrap{max-width:980px;margin:0 auto;padding:16px}
-  .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
+ .wrap{max-width:980px;margin:0 auto;padding:16px}
+ .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
     h1{font-size:20px;margin:0 0 12px} h2{font-size:16px;margin:0 0 10px}
     label{display:block;margin:10px 0 4px;font-size:14px}
     input,select,button{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff}
-  .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
+ .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
     #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px;background:#fafafa}
-  .hint{font-size:12px;color:#666;margin-top:6px}
-  .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
-  .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .muted{color:#666;font-size:12px}
+ .hint{font-size:12px;color:#666;margin-top:6px}
+ .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
+ .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+ .muted{color:#666;font-size:12px}
     @media (max-width:720px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -86,8 +86,8 @@
           <select id="fontFamily"></select>
           <label>Font size</label>
           <div class="inline">
-            <input id="fontSize" type="range" min="12" max="300" value="36" />
-            <span id="fontSizeVal">36</span>
+            <input id="fontSize" type="range" min="12" max="300" value="120" />
+            <span id="fontSizeVal">120</span>
           </div>
           <label>Text direction</label>
           <select id="direction">
@@ -129,19 +129,19 @@
       </div>
       <div class="hint" id="status"></div>
     </div>
+
+    <!-- Recent submissions: hidden until login -->
+    <div class="card hidden" id="recentCard" style="margin-top:12px">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h2 style="margin:0">Recent submissions (latest 3)</h2>
+        <button id="clearFormBtn" class="btn secondary" style="width:auto;padding:8px 12px">Clear form</button>
+      </div>
+      <div id="recentList" class="hint">Sign in to see your recent submissions.</div>
+    </div>
   </div>
 
-  <div class="card" id="recentCard" style="margin-top:12px">
-  <div class="row" style="align-items:center;justify-content:space-between">
-    <h2 style="margin:0">Recent submissions (latest 3)</h2>
-    <button id="clearFormBtn" class="btn secondary" style="width:auto;padding:8px 12px">Clear form</button>
-  </div>
-  <div id="recentList" class="hint">Loading…</div>
-</div>
-  
 <script type="module">
   import { createClient } from 'supabase';
-  // Note: we still import for completeness, but PDF uses the UMD global below.
 
   const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
@@ -150,6 +150,8 @@
   const authCard = document.getElementById('authCard');
   const appCard = document.getElementById('appCard');
   const adminCard = document.getElementById('adminCard');
+  const recentCard = document.getElementById('recentCard');
+
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
   const signInBtn = document.getElementById('signin');
@@ -188,19 +190,9 @@
   const refreshProducts = document.getElementById('refreshProducts');
   const adminStatus = document.getElementById('adminStatus');
 
-  // initial state
-submitBtn.disabled = true;
+  const recentList = document.getElementById('recentList');
+  const clearFormBtn = document.getElementById('clearFormBtn');
 
-function updateSubmitState(){
-  const missing = validateForm();
-  submitBtn.disabled = missing.length > 0;
-  statusEl.textContent = missing.length ? `Missing: ${missing.join(', ')}` : '';
-}
-['input','change'].forEach(evt=>{
-  [salesperson,custName,custPhone,dueDate,productSel,previewText,fontFamilySel,directionSel,valignSel,valignOffset]
-    .forEach(el=> el.addEventListener(evt, updateSubmitState));
-});
-  
   const TEXT_COLOR = 'rgb(128,128,128)';
   const BUCKET = 'products';
 
@@ -230,6 +222,34 @@ function updateSubmitState(){
   )).finally(()=>draw());
 
   let productItems = []; // {name, path, url}
+
+  function getSelItem(){
+    return productItems.find(p => p.path === productSel.value) || null;
+  }
+  function validateForm(){
+    const errors = [];
+    if(!(salesperson.value||'').trim()) errors.push('Salesperson name');
+    if(!(custName.value||'').trim()) errors.push('Customer name');
+    if(!(custPhone.value||'').trim()) errors.push('Customer phone');
+    if(!dueDate.value) errors.push('Due date');
+    if(!getSelItem()) errors.push('Product');
+    if(!(previewText.value||'').trim()) errors.push('Text for preview');
+    if(!fontFamilySel.value) errors.push('Font type');
+    if(!directionSel.value) errors.push('Text direction');
+    if(!valignSel.value) errors.push('Vertical alignment');
+    return errors;
+  }
+  submitBtn.disabled = true;
+  function updateSubmitState(){
+    const missing = validateForm();
+    submitBtn.disabled = missing.length > 0;
+    statusEl.textContent = missing.length? `Missing: ${missing.join(', ')}` : '';
+  }
+  ['input','change'].forEach(evt=>{
+    [salesperson,custName,custPhone,dueDate,productSel,previewText,fontFamilySel,directionSel,valignSel,valignOffset]
+     .forEach(el=> el.addEventListener(evt, updateSubmitState));
+  });
+
   async function loadProducts(){
     productSel.innerHTML = '';
     const { data, error } = await sb.storage.from(BUCKET).list('', { limit: 1000, sortBy: { column: 'name', order: 'asc' }});
@@ -288,8 +308,8 @@ function updateSubmitState(){
 
     const txt = (previewText.value || '').trim() || 'Your Text';
     const family = fontFamilySel.value || 'Poppins';
-    const size = parseInt(fontSize.value,10) || 36;
-    const dir = directionSel.value; // horizontal | vertical-down | vertical-up
+    const size = parseInt(fontSize.value,10) || 120;
+    const dir = directionSel.value;
     const y = baseY() + parseInt(valignOffset.value,10);
 
     ctx.save();
@@ -321,8 +341,8 @@ function updateSubmitState(){
   });
 
   downloadPdfBtn.addEventListener('click', async ()=>{
-    const { jsPDF } = window.jspdf; // UMD global
-    const selItem = productItems.find(p=>p.path===productSel.value);
+    const { jsPDF } = window.jspdf;
+    const selItem = getSelItem();
     if(!selItem){ alert('Please select a product.'); return; }
 
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -358,10 +378,15 @@ function updateSubmitState(){
   });
 
   submitBtn.addEventListener('click', async ()=>{
+    const missing = validateForm();
+    if(missing.length){
+      alert('Please fill all required fields:\n- ' + missing.join('\n- '));
+      updateSubmitState();
+      return;
+    }
     const { data: { user } } = await sb.auth.getUser();
     if(!user){ alert('Please sign in.'); return; }
-    const selItem = productItems.find(p=>p.path===productSel.value);
-    if(!selItem){ alert('Please select a product.'); return; }
+    const selItem = getSelItem();
 
     const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
     const ts = new Date().toISOString().replace(/[:.]/g,'-');
@@ -372,13 +397,13 @@ function updateSubmitState(){
       user_id: user.id,
       product_path: selItem.path,
       product_name: selItem.name,
-      salesperson: (salesperson.value || '').trim() || null,
-      customer_name: (custName.value || '').trim() || null,
-      customer_phone: (custPhone.value || '').trim() || null,
-      due_date: dueDate.value || null,
-      preview_text: (previewText.value || 'Your Text').trim(),
+      salesperson: salesperson.value.trim(),
+      customer_name: custName.value.trim(),
+      customer_phone: custPhone.value.trim(),
+      due_date: dueDate.value,
+      preview_text: previewText.value.trim(),
       font_family: fontFamilySel.value || 'Poppins',
-      font_size: parseInt(fontSize.value,10) || 36,
+      font_size: parseInt(fontSize.value,10) || 120,
       direction: directionSel.value,
       valign: valignSel.value,
       valign_offset: parseInt(valignOffset.value,10) || 0,
@@ -394,115 +419,87 @@ function updateSubmitState(){
     statusEl.textContent = 'Saved to Supabase.';
     await loadRecent();
   });
-  
-function getSelItem(){
-  return productItems.find(p => p.path === productSel.value) || null;
-}
-function validateForm(){
-  const errors = [];
-  if(!(salesperson.value||'').trim()) errors.push('Salesperson name');
-  if(!(custName.value||'').trim()) errors.push('Customer name');
-  if(!(custPhone.value||'').trim()) errors.push('Customer phone');
-  if(!dueDate.value) errors.push('Due date');
-  if(!getSelItem()) errors.push('Product');
-  if(!(previewText.value||'').trim()) errors.push('Text for preview');
-  if(!fontFamilySel.value) errors.push('Font type');
-  if(!directionSel.value) errors.push('Text direction');
-  if(!valignSel.value) errors.push('Vertical alignment');
-  return errors;
-}
-  
+
+  function fmtDate(d){
+    try { return new Date(d).toLocaleString(); } catch { return d || '-'; }
+  }
+  async function loadRecent(){
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
+    recentList.textContent = 'Loading…';
+    const { data, error } = await sb
+     .from('orders')
+     .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename')
+     .eq('user_id', user.id)
+     .order('created_at', { ascending: false })
+     .limit(3);
+    if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
+    if(!data ||!data.length){ recentList.textContent = 'No submissions yet.'; return; }
+    recentList.innerHTML = data.map(r => `
+      <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px">
+        <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
+        <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
+        <div class="muted">
+          ${r.font_family || 'Poppins'} ${r.font_size || ''} • ${r.direction} • ${r.valign} (${r.valign_offset || 0})
+          • Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
+        </div>
+        <div class="muted">File: ${r.filename || '-'}</div>
+      </div>
+    `).join('');
+  }
+
+  function clearForm(){
+    salesperson.value = '';
+    custName.value = '';
+    custPhone.value = '';
+    dueDate.value = '';
+    productSearch.value = '';
+    previewText.value = '';
+    fontFamilySel.value = 'Poppins';
+    fontSize.value = 120; fontSizeVal.textContent = '120';
+    directionSel.value = 'horizontal';
+    valignSel.value = 'middle';
+    valignOffset.value = 0; valignOffsetVal.textContent = '0';
+    renderProducts('');
+    draw();
+    updateSubmitState();
+    statusEl.textContent = 'Form cleared.';
+    fnameEl.textContent = '';
+  }
+  clearFormBtn.addEventListener('click', clearForm);
+
   async function isAdmin(userId){
     const { data } = await sb.from('profiles').select('is_admin').eq('user_id', userId).maybeSingle();
     return!!data?.is_admin;
   }
+
   async function refresh(){
     const { data: { user } } = await sb.auth.getUser();
-   if(user){
-  authCard.classList.add('hidden'); appCard.classList.remove('hidden'); userEmailSpan.textContent = user.email || '';
-  await loadProducts();
- if (await isAdmin(user.id)) {
-  adminCard.classList.remove('hidden');
-} else {
-  adminCard.classList.add('hidden');
-}
-  await loadRecent();   // <-- add this line
-}
+    if(user){
+      authCard.classList.add('hidden');
+      appCard.classList.remove('hidden');
+      recentCard.classList.remove('hidden'); // show recent after login
+      userEmailSpan.textContent = user.email || '';
+      await loadProducts();
+      if (await isAdmin(user.id)) {
+        adminCard.classList.remove('hidden');
+      } else {
+        adminCard.classList.add('hidden');
+      }
+      draw();
+      await loadRecent();
     }else{
-      authCard.classList.remove('hidden'); appCard.classList.add('hidden'); adminCard.classList.add('hidden');
+      authCard.classList.remove('hidden');
+      appCard.classList.add('hidden');
+      adminCard.classList.add('hidden');
+      recentCard.classList.add('hidden'); // hide recent when logged out
     }
   }
+
   signInBtn.addEventListener('click', async ()=>{ signInBtn.disabled=true; const { error } = await sb.auth.signInWithPassword({ email: emailInput.value.trim(), password: passwordInput.value }); if(error) alert(error.message); signInBtn.disabled=false; refresh(); });
   signUpBtn.addEventListener('click', async ()=>{ signUpBtn.disabled=true; const { error } = await sb.auth.signUp({ email: emailInput.value.trim(), password: passwordInput.value }); if(error) alert(error.message); else alert('Check your email for confirmation (if enabled).'); signUpBtn.disabled=false; refresh(); });
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
 
-  async function validateImage(file){
-    if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
-      throw new Error('Only JPG, PNG, or WebP allowed.');
-    }
-    if (file.size > 5*1024*1024) {
-      throw new Error('Max file size 5 MB.');
-    }
-    const bmp = await createImageBitmap(file);
-    const longEdge = Math.max(bmp.width, bmp.height);
-    if (longEdge < 1000) {
-      throw new Error('Image too small (min 1000px on the long edge).');
-    }
-  }
-
-const recentList = document.getElementById('recentList');
-const clearFormBtn = document.getElementById('clearFormBtn');
-
-function fmtDate(d){
-  try { return new Date(d).toLocaleString(); } catch { return d || '-'; }
-}
-
-async function loadRecent(){
-  const { data: { user } } = await sb.auth.getUser();
-  if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
-  recentList.textContent = 'Loading…';
-  const { data, error } = await sb
-    .from('orders')
-    .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(3);
-  if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
-  if(!data || !data.length){ recentList.textContent = 'No submissions yet.'; return; }
-
-  recentList.innerHTML = data.map(r => `
-    <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px">
-      <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
-      <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
-      <div class="muted">
-        ${r.font_family || 'Poppins'} ${r.font_size || ''} • ${r.direction} • ${r.valign} (${r.valign_offset || 0})
-        • Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
-      </div>
-      <div class="muted">File: ${r.filename || '-'}</div>
-    </div>
-  `).join('');
-}
-
-function clearForm(){
-  salesperson.value = '';
-  custName.value = '';
-  custPhone.value = '';
-  dueDate.value = '';
-  productSearch.value = '';
-  previewText.value = '';
-  fontFamilySel.value = 'Poppins';
-  fontSize.value = 120; fontSizeVal.textContent = '120';
-  directionSel.value = 'horizontal';
-  valignSel.value = 'middle';
-  valignOffset.value = 0; valignOffsetVal.textContent = '0';
-  renderProducts('');         // reset product filter & selection
-  draw();                     // re-render preview
-  updateSubmitState();        // refresh validation & status line
-  statusEl.textContent = 'Form cleared.';
-  fnameEl.textContent = '';
-}
-clearFormBtn.addEventListener('click', clearForm);
-  
   uploadBtn.addEventListener('click', async ()=>{
     const files = fileInput.files; if (!files ||!files.length) { return; }
     adminStatus.textContent = 'Uploading…';
@@ -514,6 +511,7 @@ clearFormBtn.addEventListener('click', clearForm);
     adminStatus.textContent = 'Done.'; fileInput.value = ''; await loadProducts();
   });
   refreshProducts.addEventListener('click', loadProducts);
+
   refresh();
 </script>
 </body>
