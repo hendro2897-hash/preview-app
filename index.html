@@ -49,7 +49,7 @@
 <script>
   const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const authSection = document.getElementById('auth');
   const appSection = document.getElementById('app');
@@ -118,7 +118,7 @@ function draw(){
   });
 
   async function refresh(){
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await sb.auth.getUser();
     if(user){
       authSection.classList.add('hidden');
       appSection.classList.remove('hidden');
@@ -130,7 +130,7 @@ function draw(){
   }
   signInBtn.addEventListener('click', async ()=>{
     signInBtn.disabled = true;
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await sb.auth.signInWithPassword({
       email: emailInput.value.trim(),
       password: passwordInput.value
     });
@@ -140,7 +140,7 @@ function draw(){
   });
   signUpBtn.addEventListener('click', async ()=>{
     signUpBtn.disabled = true;
-    const { error } = await supabase.auth.signUp({
+    const { error } = await sb.auth.signUp({
       email: emailInput.value.trim(),
       password: passwordInput.value
     });
@@ -150,7 +150,7 @@ function draw(){
     refresh();
   });
   signOutBtn.addEventListener('click', async ()=>{
-    await supabase.auth.signOut();
+    await sb.auth.signOut();
     refresh();
   });
   refresh();
