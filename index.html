@@ -1,51 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Preview App</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body{font-family:sans-serif;display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center;background:#f5f5f5}
-    .card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);width:100%;max-width:720px}
-    .hidden{display:none}
-    label{display:block;margin:8px 0 4px}
-    input,button{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%;box-sizing:border-box}
-    button{cursor:pointer;margin-top:8px}
-    #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px}
-    .row{display:flex;gap:8px}
-    .row>*{flex:1}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div id="auth">
-      <h2>Login or Sign up</h2>
-      <label>Email</label>
-      <input id="email" type="email" placeholder="you@example.com" />
-      <label>Password</label>
-      <input id="password" type="password" placeholder="••••••••" />
-      <div class="row">
-        <button id="signin">Login</button>
-        <button id="signup">Sign up</button>
-      </div>
-    </div>
-
-    <div id="app" class="hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div>Logged in as <span id="userEmail"></span></div>
-        <button id="signout" style="width:auto;padding:8px 12px">Sign out</button>
-      </div>
-      <label>Text</label>
-      <input id="text" type="text" placeholder="your name" />
-      <label>Text color</label>
-      <input id="textColor" type="color" value="#ffffff" />
-      <canvas id="canvas" width="1080" height="1350"></canvas>
-      <img id="bg" src="fonts/bg.jpg" alt="" style="display:none">
-      <button id="download">Download PNG</button>
-    </div>
-  </div>
-
 <script>
   const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
@@ -66,104 +18,78 @@
   const textColorInput = document.getElementById('textColor');
   const downloadBtn = document.getElementById('download');
 
-const fontDefs = [
-  // OpenType Fonts (.otf)
-  ['AbramoScript', 'fonts/AbramoScript.otf', { format: 'opentype' }],
-  ['MagnoliaScript', 'fonts/MagnoliaScript.otf', { format: 'opentype' }],
-  ['NexaScript', 'fonts/NexaScript.otf', { format: 'opentype' }],
-  ['WhiteApricot', 'fonts/White-Apricot.otf', { format: 'opentype' }],
+  const fontDefs = [
+    ['AbramoScript', 'fonts/AbramoScript.otf', { format: 'opentype' }],
+    ['MagnoliaScript', 'fonts/MagnoliaScript.otf', { format: 'opentype' }],
+    ['NexaScript', 'fonts/NexaScript.otf', { format: 'opentype' }],
+    ['WhiteApricot', 'fonts/White-Apricot.otf', { format: 'opentype' }],
+    ['AboveTheBeyond', 'fonts/Above-the-beyond-script.ttf', { format: 'truetype' }],
+    ['AdleryProSwash', 'fonts/AdleryProSwash.ttf', { format: 'truetype' }],
+    ['AlexBrush', 'fonts/AlexBrush-Regular.ttf', { format: 'truetype' }],
+    ['BelweCondensed', 'fonts/Belwe.ttf', { format: 'truetype' }],
+    ['BerkshireSwash', 'fonts/BerkshireSwash-Regular.ttf', { format: 'truetype' }],
+    ['GloriaHallelujah', 'fonts/GloriaHallelujah.ttf', { format: 'truetype' }],
+    ['HughIsLife', 'fonts/Hugh-is-Life.ttf', { format: 'truetype' }],
+    ['LifelogoEasy', 'fonts/Lifelogo-Easy.ttf', { format: 'truetype' }],
+    ['MoonTime', 'fonts/MoonTime-Regular.ttf', { format: 'truetype' }],
+    ['PlayfairDisplay', 'fonts/PlayfairDisplay-Black.ttf', { weight: '900', format: 'truetype' }],
+    ['Poppins', 'fonts/Poppins-Black.ttf', { weight: '900', format: 'truetype' }],
+    ['Roboto', 'fonts/Roboto-Black.ttf', { weight: '900', format: 'truetype' }],
+    ['RumblebraveScript', 'fonts/Rumble-brave-script-Italic.ttf', { style: 'italic', format: 'truetype' }]
+  ];
 
-  // TrueType Fonts (.ttf)
-  ['AboveTheBeyond', 'fonts/Above-the-beyond-script.ttf', { format: 'truetype' }],
-  ['AdleryProSwash', 'fonts/AdleryProSwash.ttf', { format: 'truetype' }],
-  ['AlexBrush', 'fonts/AlexBrush-Regular.ttf', { format: 'truetype' }],
-  ['BelweCondensed', 'fonts/Belwe.ttf', { format: 'truetype' }],
-  ['BerkshireSwash', 'fonts/BerkshireSwash-Regular.ttf', { format: 'truetype' }],
-  ['GloriaHallelujah', 'fonts/GloriaHallelujah.ttf', { format: 'truetype' }],
-  ['HughIsLife', 'fonts/Hugh-is-Life.ttf', { format: 'truetype' }], // Renamed 'Hugh-is-Life' to 'HughIsLife' for easier JS access
-  ['LifelogoEasy', 'fonts/Lifelogo-Easy.ttf', { format: 'truetype' }], // Renamed 'Lifelogo-Easy' to 'LifelogoEasy'
-  ['MoonTime', 'fonts/MoonTime-Regular.ttf', { format: 'truetype' }], // Renamed 'MoonTime-Regular' to 'MoonTime'
-  ['PlayfairDisplay', 'fonts/PlayfairDisplay-Black.ttf', { weight: '900', format: 'truetype' }], // Added weight for Playfair
-  ['Poppins', 'fonts/Poppins-Black.ttf', { weight: '900', format: 'truetype' }], // Added weight for Poppins
-  ['Roboto', 'fonts/Roboto-Black.ttf', { weight: '900', format: 'truetype' }], // Added weight for Roboto
-  ['RumblebraveScript', 'fonts/Rumble-brave-script-Italic.ttf', { style: 'italic', format: 'truetype' }] // Renamed 'Rumble-brave-script-Italic' to 'RumblebraveScript' and added style
-];
+  Promise.allSettled(
+    fontDefs.map(([name, url, options = {}]) =>
+      new FontFace(name, `url(${url})`, options).load()
+        .then(f => { document.fonts.add(f); return name; })
+        .catch(e => { console.warn(`Failed to load font ${name} from ${url}:`, e); throw new Error(`Font load error for ${name}`); })
+    )
+  ).finally(() => { draw(); });
 
-// This part should be in your main script where you initialize your app
-// and run your `draw()` function.
-Promise.allSettled(
-  fontDefs.map(([name, url, options = {}]) =>
-    new FontFace(name, `url(${url})`, options).load()
-      .then(f => {
-        document.fonts.add(f);
-        console.log(`Font loaded: ${name}`);
-        return name;
-      })
-      .catch(e => {
-        console.warn(`Failed to load font ${name} from ${url}:`, e);
-        throw new Error(`Font load error for ${name}`); // Re-throw to make it rejected in allSettled
-      })
-  )
-)
-.then(results => {
-  results.forEach(r => {
-    if (r.status === 'rejected') {
-      console.error(r.reason); // Log the specific font error
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // background (cover)
+    if (bg.complete && bg.naturalWidth) {
+      const r = Math.max(canvas.width / bg.naturalWidth, canvas.height / bg.naturalHeight);
+      const w = bg.naturalWidth * r, h = bg.naturalHeight * r;
+      const x = (canvas.width - w) / 2, y = (canvas.height - h) / 2;
+      ctx.drawImage(bg, x, y, w, h);
+    } else {
+      ctx.fillStyle = '#eee';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
-  });
-  // Call your drawing function here, ensuring fonts are loaded before drawing
-  // This `draw` function should use your `ctx`
-  draw();
-})
-.catch(error => {
-  console.error("One or more fonts failed to load:", error);
-  // You might want to call draw() anyway with fallback fonts or display a message
-  draw();
-});
 
-// --- How to use in your canvas context (ctx) ---
+    const txt = (textInput.value || '').trim() || 'Your Text';
+    ctx.fillStyle = textColorInput.value || '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
 
-// Assuming 'ctx' is your 2D rendering context for the canvas
-// Example: const canvas = document.getElementById('myCanvas');
-//          const ctx = canvas.getContext('2d');
+    let y = 120;
+    const step = 100;
 
-function draw() {
-  // Clear canvas or draw background first
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const lines = [
+      ['80px AbramoScript', y],
+      ['60px AlexBrush', y+=step],
+      ['900 70px PlayfairDisplay', y+=step],
+      ['900 50px Poppins', y+=step],
+      ['italic 70px RumblebraveScript', y+=step],
+      ['normal 40px MagnoliaScript', y+=step],
+      ['60px BerkshireSwash', y+=step],
+      ['50px GloriaHallelujah', y+=step],
+      ['70px MoonTime', y+=step],
+      ['900 60px Roboto', y+=step]
+    ];
 
-  // Example usage of some of your fonts:
+    lines.forEach(([font, yy], i) => {
+      ctx.font = font;
+      ctx.fillText(txt, canvas.width / 2, i===0?120:yy);
+    });
+  }
 
-  ctx.fillStyle = 'black';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  // AbramoScript (OpenType)
-  ctx.font = '80px AbramoScript';
-  ctx.fillText('Hello Abramo!', canvas.width / 2, 100);
-
-  // AlexBrush (TrueType)
-  ctx.font = '60px AlexBrush';
-  ctx.fillText('Beautiful AlexBrush', canvas.width / 2, 200);
-
-  // PlayfairDisplay (TrueType, with weight specified in definition)
-  ctx.font = '900 70px PlayfairDisplay'; // '900' matches the weight in fontDefs
-  ctx.fillText('Bold Playfair', canvas.width / 2, 300);
-
-  // Poppins (TrueType, with weight specified in definition)
-  ctx.font = '900 50px Poppins'; // '900' matches the weight in fontDefs
-  ctx.fillText('Poppins Black Text', canvas.width / 2, 400);
-
-  // If you define `weight` in `FontFace` options, you can use it like this:
-  ctx.font = 'italic 70px RumblebraveScript'; // 'italic' matches the style
-  ctx.fillText('Rumblebrave Italic', canvas.width / 2, 500);
-
-  // For any font without specific weight/style in its definition:
-  ctx.font = 'normal 40px MagnoliaScript';
-  ctx.fillText('Normal Magnolia', canvas.width / 2, 600);
-}
-
-// Make sure your `draw` function is called after the fonts have loaded
-// or after `Promise.allSettled` completes, as shown above.
+  textInput.addEventListener('input', draw);
+  textColorInput.addEventListener('input', draw);
+  bg.addEventListener('load', draw);
 
   downloadBtn.addEventListener('click', ()=>{
     const a = document.createElement('a');
@@ -178,6 +104,7 @@ function draw() {
       authSection.classList.add('hidden');
       appSection.classList.remove('hidden');
       userEmailSpan.textContent = user.email || '';
+      draw();
     }else{
       authSection.classList.remove('hidden');
       appSection.classList.add('hidden');
@@ -185,30 +112,19 @@ function draw() {
   }
   signInBtn.addEventListener('click', async ()=>{
     signInBtn.disabled = true;
-    const { error } = await sb.auth.signInWithPassword({
-      email: emailInput.value.trim(),
-      password: passwordInput.value
-    });
+    const { error } = await sb.auth.signInWithPassword({ email: emailInput.value.trim(), password: passwordInput.value });
     if(error) alert(error.message);
     signInBtn.disabled = false;
     refresh();
   });
   signUpBtn.addEventListener('click', async ()=>{
     signUpBtn.disabled = true;
-    const { error } = await sb.auth.signUp({
-      email: emailInput.value.trim(),
-      password: passwordInput.value
-    });
+    const { error } = await sb.auth.signUp({ email: emailInput.value.trim(), password: passwordInput.value });
     if(error) alert(error.message);
     else alert('Check your email for confirmation (if enabled).');
     signUpBtn.disabled = false;
     refresh();
   });
-  signOutBtn.addEventListener('click', async ()=>{
-    await sb.auth.signOut();
-    refresh();
-  });
+  signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
   refresh();
 </script>
-</body>
-</html>
