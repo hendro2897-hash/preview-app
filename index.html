@@ -327,31 +327,41 @@
   });
 
   submitBtn.addEventListener('click', async ()=>{
-    const { data: { user } } = await sb.auth.getUser();
-    if(!user){ alert('Please sign in.'); return; }
-    const payload = collectPayload();
-    if(!payload.productPath){ alert('Please select a product.'); return; }
-    const { error } = await sb.from('orders').insert({
-      user_id: user.id,
-      product_path: payload.productPath,
-      product_name: payload.productName,
-      text_main: payload.text,
-      text_color: payload.color,
-      font_family: payload.font,
-      font_size: payload.size,
-      align: payload.align,
-      scale: payload.scale,
-      offset_x: payload.offx,
-      offset_y: payload.offy,
-      canvas_w: payload.canvasW,
-      canvas_h: payload.canvasH,
-      filename: payload.filename
-    });
-    if(error){ alert('Submit failed: '+error.message); return; }
-    alert('Thank you for your submission!');
-    statusEl.textContent = 'Saved to Supabase.';
-  });
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user){ alert('Please sign in.'); return; }
+  const selItem = productItems.find(p=>p.path===productSel.value);
+  if(!selItem){ alert('Please select a product.'); return; }
 
+  const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
+  const ts = new Date().toISOString().replace(/[:.]/g,'-');
+  const filename = `${base}-${ts}.png`;
+  if (fnameEl) fnameEl.textContent = filename;
+
+  const row = {
+    user_id: user.id,
+    product_path: selItem.path,
+    product_name: selItem.name,
+    salesperson: (salesperson.value || '').trim() || null,
+    customer_name: (custName.value || '').trim() || null,
+    customer_phone: (custPhone.value || '').trim() || null,
+    due_date: dueDate.value || null,
+    preview_text: (previewText.value || 'Your Text').trim(),
+    font_family: fontFamilySel.value || 'Poppins',
+    font_size: parseInt(fontSize.value,10) || 120,
+    direction: directionSel.value,               // horizontal | vertical-down | vertical-up
+    valign: valignSel.value,                    // top | middle | bottom
+    valign_offset: parseInt(valignOffset.value,10) || 0,
+    text_color: TEXT_COLOR,
+    canvas_w: canvas.width,
+    canvas_h: canvas.height,
+    filename
+  };
+
+  const { error } = await sb.from('orders').insert(row);
+  if(error){ alert('Submit failed: ' + error.message); return; }
+  alert('Thank you for your submission!');
+  statusEl.textContent = 'Saved to Supabase.';
+});
   async function isAdmin(userId){
     const { data } = await sb.from('profiles').select('is_admin').eq('user_id', userId).maybeSingle();
     return!!data?.is_admin;
