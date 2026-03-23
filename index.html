@@ -4,9 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TYESO Indonesia Official Store - Preview Your Text Here</title>
+
   <script type="importmap">
-    <!-- add in <head> after the importmap -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   {
     "imports": {
       "supabase": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
@@ -14,20 +13,22 @@
     }
   }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
   <style>
     body{font-family:sans-serif;margin:0;background:#f5f5f5;color:#111}
-   .wrap{max-width:980px;margin:0 auto;padding:16px}
-   .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
     h1{font-size:20px;margin:0 0 12px} h2{font-size:16px;margin:0 0 10px}
     label{display:block;margin:10px 0 4px;font-size:14px}
     input,select,button{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff}
-   .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
+  .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
     #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px;background:#fafafa}
-   .hint{font-size:12px;color:#666;margin-top:6px}
-   .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
-   .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
-   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-   .muted{color:#666;font-size:12px}
+  .hint{font-size:12px;color:#666;margin-top:6px}
+  .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
+  .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .muted{color:#666;font-size:12px}
     @media (max-width:720px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -132,7 +133,7 @@
 
 <script type="module">
   import { createClient } from 'supabase';
-  import { jsPDF } from 'jspdf';
+  // Note: we still import for completeness, but PDF uses the UMD global below.
 
   const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
@@ -265,7 +266,7 @@
 
     const txt = (previewText.value || '').trim() || 'Your Text';
     const family = fontFamilySel.value || 'Poppins';
-    const size = parseInt(fontSize.value,10) || 120;
+    const size = parseInt(fontSize.value,10) || 36;
     const dir = directionSel.value; // horizontal | vertical-down | vertical-up
     const y = baseY() + parseInt(valignOffset.value,10);
 
@@ -290,29 +291,6 @@
   bg.addEventListener('load', draw);
   resetAlign.addEventListener('click', ()=>{ valignSel.value='middle'; valignOffset.value=0; valignOffsetVal.textContent='0'; draw(); });
 
-  function collectPayload(){
-    const selItem = productItems.find(p=>p.path===productSel.value);
-    const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
-    const ts = new Date().toISOString().replace(/[:.]/g,'-');
-    const filename = `${base}-${ts}.png`;
-    if (fnameEl) fnameEl.textContent = filename;
-    return {
-      productPath: selItem?.path || '',
-      productName: selItem?.name || '',
-      text: (previewText.value || 'Your Text').trim(),
-      color: TEXT_COLOR,
-      font: fontFamilySel.value || 'Poppins',
-      size: parseInt(fontSize.value,10) || 120,
-      align: valignSel.value,
-      scale: 1,
-      offx: 0,
-      offy: parseInt(valignOffset.value,10) || 0,
-      canvasW: canvas.width,
-      canvasH: canvas.height,
-      filename
-    };
-  }
-
   downloadPng.addEventListener('click', ()=>{
     const a = document.createElement('a');
     a.download = (fnameEl?.textContent || (previewText.value || 'preview') + '.png');
@@ -321,77 +299,79 @@
   });
 
   downloadPdfBtn.addEventListener('click', async ()=>{
-  const { jsPDF } = window.jspdf; // <-- use the UMD global
-  const selItem = productItems.find(p=>p.path===productSel.value);
-  if(!selItem){ alert('Please select a product.'); return; }
+    const { jsPDF } = window.jspdf; // UMD global
+    const selItem = productItems.find(p=>p.path===productSel.value);
+    if(!selItem){ alert('Please select a product.'); return; }
 
-  const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const margin = 40;
-  let y = 60;
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const margin = 40;
+    let y = 60;
 
-  pdf.setFontSize(16);
-  pdf.text('TYESO Indonesia - Order Preview', margin, y);
-  y += 24;
+    pdf.setFontSize(16);
+    pdf.text('TYESO Indonesia - Order Preview', margin, y);
+    y += 24;
 
-  pdf.setFontSize(11);
-  const lines = [
-    `Salesperson: ${ (salesperson.value || '-').trim() }`,
-    `Customer: ${ (custName.value || '-').trim() }  |  Phone: ${ (custPhone.value || '-').trim() }`,
-    `Due date: ${ dueDate.value || '-' }`,
-    `Product: ${ selItem.name }`,
-    `Text: ${ (previewText.value || 'Your Text').trim() }`,
-    `Font: ${ fontFamilySel.value || 'Poppins' }   Size: ${ parseInt(fontSize.value,10) || 120 }`,
-    `Direction: ${ directionSel.value }   V-Align: ${ valignSel.value }   Offset: ${ parseInt(valignOffset.value,10) || 0 }`,
-    `Text color: ${ TEXT_COLOR }`,
-  ];
-  lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
+    pdf.setFontSize(11);
+    const lines = [
+      `Salesperson: ${ (salesperson.value || '-').trim() }`,
+      `Customer: ${ (custName.value || '-').trim() } | Phone: ${ (custPhone.value || '-').trim() }`,
+      `Due date: ${ dueDate.value || '-' }`,
+      `Product: ${ selItem.name }`,
+      `Text: ${ (previewText.value || 'Your Text').trim() }`,
+      `Font: ${ fontFamilySel.value || 'Poppins' } Size: ${ parseInt(fontSize.value,10) || 120 }`,
+      `Direction: ${ directionSel.value } V-Align: ${ valignSel.value } Offset: ${ parseInt(valignOffset.value,10) || 0 }`,
+      `Text color: ${ TEXT_COLOR }`
+    ];
+    lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
 
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-  const imgW = pageW - margin*2;
-  const imgH = imgW * (canvas.height / canvas.width);
-  pdf.addImage(dataUrl, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    const imgW = pageW - margin*2;
+    const imgH = imgW * (canvas.height / canvas.width);
+    pdf.addImage(dataUrl, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
 
-  const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
-  const ts = new Date().toISOString().replace(/[:.]/g,'-');
-  pdf.save(`TYESO-order-${base}-${ts}.pdf`);
-});
+    const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
+    const ts = new Date().toISOString().replace(/[:.]/g,'-');
+    pdf.save(`TYESO-order-${base}-${ts}.pdf`);
+  });
+
   submitBtn.addEventListener('click', async ()=>{
-  const { data: { user } } = await sb.auth.getUser();
-  if(!user){ alert('Please sign in.'); return; }
-  const selItem = productItems.find(p=>p.path===productSel.value);
-  if(!selItem){ alert('Please select a product.'); return; }
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user){ alert('Please sign in.'); return; }
+    const selItem = productItems.find(p=>p.path===productSel.value);
+    if(!selItem){ alert('Please select a product.'); return; }
 
-  const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
-  const ts = new Date().toISOString().replace(/[:.]/g,'-');
-  const filename = `${base}-${ts}.png`;
-  if (fnameEl) fnameEl.textContent = filename;
+    const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
+    const ts = new Date().toISOString().replace(/[:.]/g,'-');
+    const filename = `${base}-${ts}.png`;
+    if (fnameEl) fnameEl.textContent = filename;
 
-  const row = {
-    user_id: user.id,
-    product_path: selItem.path,
-    product_name: selItem.name,
-    salesperson: (salesperson.value || '').trim() || null,
-    customer_name: (custName.value || '').trim() || null,
-    customer_phone: (custPhone.value || '').trim() || null,
-    due_date: dueDate.value || null,
-    preview_text: (previewText.value || 'Your Text').trim(),
-    font_family: fontFamilySel.value || 'Poppins',
-    font_size: parseInt(fontSize.value,10) || 120,
-    direction: directionSel.value,               // horizontal | vertical-down | vertical-up
-    valign: valignSel.value,                    // top | middle | bottom
-    valign_offset: parseInt(valignOffset.value,10) || 0,
-    text_color: TEXT_COLOR,
-    canvas_w: canvas.width,
-    canvas_h: canvas.height,
-    filename
-  };
+    const row = {
+      user_id: user.id,
+      product_path: selItem.path,
+      product_name: selItem.name,
+      salesperson: (salesperson.value || '').trim() || null,
+      customer_name: (custName.value || '').trim() || null,
+      customer_phone: (custPhone.value || '').trim() || null,
+      due_date: dueDate.value || null,
+      preview_text: (previewText.value || 'Your Text').trim(),
+      font_family: fontFamilySel.value || 'Poppins',
+      font_size: parseInt(fontSize.value,10) || 36,
+      direction: directionSel.value,
+      valign: valignSel.value,
+      valign_offset: parseInt(valignOffset.value,10) || 0,
+      text_color: TEXT_COLOR,
+      canvas_w: canvas.width,
+      canvas_h: canvas.height,
+      filename
+    };
 
-  const { error } = await sb.from('orders').insert(row);
-  if(error){ alert('Submit failed: ' + error.message); return; }
-  alert('Thank you for your submission!');
-  statusEl.textContent = 'Saved to Supabase.';
-});
+    const { error } = await sb.from('orders').insert(row);
+    if(error){ alert('Submit failed: ' + error.message); return; }
+    alert('Thank you for your submission!');
+    statusEl.textContent = 'Saved to Supabase.';
+  });
+
   async function isAdmin(userId){
     const { data } = await sb.from('profiles').select('is_admin').eq('user_id', userId).maybeSingle();
     return!!data?.is_admin;
@@ -412,15 +392,21 @@
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
 
   async function validateImage(file){
-    if(!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Only JPG, PNG, or WebP allowed.');
-    if(file.size > 5*1024*1024) throw new Error('Max file size 5 MB.');
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+      throw new Error('Only JPG, PNG, or WebP allowed.');
+    }
+    if (file.size > 5*1024*1024) {
+      throw new Error('Max file size 5 MB.');
+    }
     const bmp = await createImageBitmap(file);
     const longEdge = Math.max(bmp.width, bmp.height);
-    if(longEdge < 1000) throw new Error('Image too small (min 1000px on the long edge).');
+    if (longEdge < 1000) {
+      throw new Error('Image too small (min 1000px on the long edge).');
+    }
   }
 
   uploadBtn.addEventListener('click', async ()=>{
-    const files = fileInput.files; if(!files ||!files.length) return;
+    const files = fileInput.files; if (!files ||!files.length) { return; }
     adminStatus.textContent = 'Uploading…';
     for(const f of files){
       const path = `${Date.now()}-${f.name}`.replace(/\s+/g,'_');
