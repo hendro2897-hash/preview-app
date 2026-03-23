@@ -421,8 +421,11 @@ function validateForm(){
    if(user){
   authCard.classList.add('hidden'); appCard.classList.remove('hidden'); userEmailSpan.textContent = user.email || '';
   await loadProducts();
-  if(await isAdmin(user.id)) adminCard.classList.remove('hidden'); else adminCard.classList.add('hidden');
-  draw();
+ if (await isAdmin(user.id)) {
+  adminCard.classList.remove('hidden');
+} else {
+  adminCard.classList.add('hidden');
+}
   await loadRecent();   // <-- add this line
 }
     }else{
