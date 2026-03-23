@@ -17,18 +17,18 @@
 
   <style>
     body{font-family:sans-serif;margin:0;background:#f5f5f5;color:#111}
- .wrap{max-width:980px;margin:0 auto;padding:16px}
- .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+.card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
     h1{font-size:20px;margin:0 0 12px} h2{font-size:16px;margin:0 0 10px}
     label{display:block;margin:10px 0 4px;font-size:14px}
     input,select,button{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff}
- .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
+.row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
     #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px;background:#fafafa}
- .hint{font-size:12px;color:#666;margin-top:6px}
- .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
- .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
- .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
- .muted{color:#666;font-size:12px}
+.hint{font-size:12px;color:#666;margin-top:6px}
+.inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
+.btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.muted{color:#666;font-size:12px}
     @media (max-width:720px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -247,7 +247,7 @@
   }
   ['input','change'].forEach(evt=>{
     [salesperson,custName,custPhone,dueDate,productSel,previewText,fontFamilySel,directionSel,valignSel,valignOffset]
-     .forEach(el=> el.addEventListener(evt, updateSubmitState));
+    .forEach(el=> el.addEventListener(evt, updateSubmitState));
   });
 
   async function loadProducts(){
@@ -423,20 +423,88 @@
   function fmtDate(d){
     try { return new Date(d).toLocaleString(); } catch { return d || '-'; }
   }
+
+  // --- text-only PDF helpers ---
+  const FONT_FILE_MAP = {
+    Poppins: 'fonts/Poppins-Black.ttf',
+    Roboto: 'fonts/Roboto-Black.ttf',
+    PlayfairDisplay: 'fonts/PlayfairDisplay-Black.ttf',
+  };
+  async function ensurePdfFont(pdf, family){
+    const file = FONT_FILE_MAP[family];
+    if (!file) { pdf.setFont('helvetica', 'normal'); return; }
+    try {
+      const res = await fetch(file);
+      const buf = await res.arrayBuffer();
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const vfsName = file.split('/').pop();
+      pdf.addFileToVFS(vfsName, b64);
+      pdf.addFont(vfsName, family, 'normal');
+      pdf.setFont(family, 'normal');
+    } catch {
+      pdf.setFont('helvetica', 'normal');
+    }
+  }
+  function parseRgb(rgbStr){
+    const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/i.exec(rgbStr || '');
+    return m? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [128,128,128];
+  }
+  async function makeTextOnlyPdfUrl(r){
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 48;
+
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(11); pdf.setTextColor(90);
+    const meta = [
+      `TYESO Indonesia — Text-only proof`,
+      `Created: ${new Date(r.created_at).toLocaleString()}`,
+      `Customer: ${r.customer_name || '-'} | Phone: ${r.customer_phone || '-'}`,
+      `Salesperson: ${r.salesperson || '-'} | Due: ${r.due_date || '-'}`,
+      `Product: ${r.product_name || '-'}`
+    ];
+    let y = margin;
+    meta.forEach(line => { pdf.text(line, margin, y); y += 16; });
+    y += 8;
+    pdf.setDrawColor(220); pdf.line(margin, y, pageW - margin, y); y += 24;
+
+    await ensurePdfFont(pdf, r.font_family || 'Poppins');
+    const fontSizePt = Math.max(8, Math.min(200, Number(r.font_size) || 120));
+    pdf.setFontSize(fontSizePt);
+    const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
+    pdf.setTextColor(cr,cg,cb);
+
+    const text = (r.preview_text || 'Your Text').trim();
+    const maxWidth = pageW - margin*2;
+    const lines = pdf.splitTextToSize(text, maxWidth);
+    const lineHeight = fontSizePt * 1.2;
+    const blockHeight = lines.length * lineHeight;
+    let startY = Math.max(y + lineHeight, (pageH - blockHeight) / 2);
+    lines.forEach((line, i) => {
+      const textWidth = pdf.getTextWidth(line);
+      const x = (pageW - textWidth) / 2;
+      pdf.text(line, x, startY + i*lineHeight);
+    });
+
+    return pdf.output('bloburl');
+  }
+
   async function loadRecent(){
     const { data: { user } } = await sb.auth.getUser();
     if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
     recentList.textContent = 'Loading…';
     const { data, error } = await sb
-     .from('orders')
-     .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename')
-     .eq('user_id', user.id)
-     .order('created_at', { ascending: false })
-     .limit(3);
+    .from('orders')
+    .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename, text_color')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(3);
     if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
     if(!data ||!data.length){ recentList.textContent = 'No submissions yet.'; return; }
+
     recentList.innerHTML = data.map(r => `
-      <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px">
+      <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px" data-id="${r.id}">
         <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
         <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
         <div class="muted">
@@ -444,8 +512,42 @@
           • Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
         </div>
         <div class="muted">File: ${r.filename || '-'}</div>
+
+        <div style="margin-top:8px">
+          <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
+          <div class="inline">
+            <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
+            <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
+          </div>
+        </div>
       </div>
     `).join('');
+
+    const cards = recentList.querySelectorAll('[data-id]');
+    cards.forEach(async (card) => {
+      const id = card.getAttribute('data-id');
+      const input = card.querySelector('.textonly-link');
+      const btn = card.querySelector('.copy-link');
+      try {
+        const { data: rows, error } = await sb.from('orders').select('*').eq('id', id).limit(1);
+        if (error ||!rows ||!rows.length) throw new Error('load failed');
+        const url = await makeTextOnlyPdfUrl(rows[0]);
+        input.value = url;
+        btn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(input.value);
+            btn.textContent = 'Copied!';
+            setTimeout(()=> btn.textContent = 'Copy link', 1200);
+          } catch {
+            input.select(); document.execCommand('copy');
+          }
+        });
+      } catch (e) {
+        input.value = '';
+        input.placeholder = 'Could not generate link';
+        btn.disabled = true;
+      }
+    });
   }
 
   function clearForm(){
@@ -478,7 +580,7 @@
     if(user){
       authCard.classList.add('hidden');
       appCard.classList.remove('hidden');
-      recentCard.classList.remove('hidden'); // show recent after login
+      recentCard.classList.remove('hidden');
       userEmailSpan.textContent = user.email || '';
       await loadProducts();
       if (await isAdmin(user.id)) {
@@ -492,7 +594,7 @@
       authCard.classList.remove('hidden');
       appCard.classList.add('hidden');
       adminCard.classList.add('hidden');
-      recentCard.classList.add('hidden'); // hide recent when logged out
+      recentCard.classList.add('hidden');
     }
   }
 
