@@ -197,7 +197,7 @@
   const BUCKET = 'products';
 
   const fontDefs = [
-    ['AbramoScript', 'fonts/AbramoScript.otf', { format: 'opentype' }],
+    ['AbramoScript', 'fonts/AbramoScript.ttf', { format: 'truetype' }],
     ['MagnoliaScript', 'fonts/MagnoliaScript.otf', { format: 'opentype' }],
     ['NexaScript', 'fonts/NexaScript.otf', { format: 'opentype' }],
     ['WhiteApricot', 'fonts/White-Apricot.otf', { format: 'opentype' }],
@@ -438,8 +438,9 @@ const FONT_FILE_MAP = {
   HughIsLife: 'fonts/Hugh-is-Life.ttf',
   LifelogoEasy: 'fonts/Lifelogo-Easy.ttf',
   MoonTime: 'fonts/MoonTime-Regular.ttf',
-  'RumblebraveScript': 'fonts/Rumble-brave-script-Italic.ttf'
-  // OTF fonts (AbramoScript, MagnoliaScript, NexaScript, WhiteApricot, BelweCondensed) intentionally omitted
+  RumblebraveScript: 'fonts/Rumble-brave-script-Italic.ttf'
+  AbramoScript: 'fonts/AbramoScript.ttf'
+  // OTF fonts (MagnoliaScript, NexaScript, WhiteApricot, BelweCondensed) intentionally omitted
 };
 
 async function ensurePdfFont(pdf, family){
