@@ -14,17 +14,18 @@
   </script>
   <style>
     body{font-family:sans-serif;margin:0;background:#f5f5f5;color:#111}
- .wrap{max-width:980px;margin:0 auto;padding:16px}
- .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
+   .wrap{max-width:980px;margin:0 auto;padding:16px}
+   .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
     h1{font-size:20px;margin:0 0 12px} h2{font-size:16px;margin:0 0 10px}
     label{display:block;margin:10px 0 4px;font-size:14px}
     input,select,button{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff}
- .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
+   .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
     #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px;background:#fafafa}
- .hint{font-size:12px;color:#666;margin-top:6px}
- .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
- .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
- .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+   .hint{font-size:12px;color:#666;margin-top:6px}
+   .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
+   .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
+   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+   .muted{color:#666;font-size:12px}
     @media (max-width:720px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -88,8 +89,8 @@
           <label>Text direction</label>
           <select id="direction">
             <option value="horizontal">Horizontal</option>
-            <option value="vertical-down">Top to bottom</option>
-            <option value="vertical-up">Bottom to top</option>
+            <option value="vertical-down">Top-down</option>
+            <option value="vertical-up">Bottom-up</option>
           </select>
           <div class="row">
             <div>
@@ -118,10 +119,11 @@
       <canvas id="canvas" width="1080" height="1350"></canvas>
       <img id="bg" alt="" style="display:none" crossorigin="anonymous" />
       <div class="row" style="margin-top:10px">
-  <button class="btn" id="download">Save as PNG</button>
-  <button class="btn secondary" id="downloadPdf">Download PDF</button>
-  <span class="muted">Filename: <code id="fname"></code></span>
-</div>
+        <button class="btn" id="downloadPng">Save as PNG</button>
+        <button class="btn secondary" id="downloadPdf">Download PDF</button>
+        <button class="btn" id="submitBtn">Submit</button>
+        <span class="muted">Filename: <code id="fname"></code></span>
+      </div>
       <div class="hint" id="status"></div>
     </div>
   </div>
@@ -163,11 +165,13 @@
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   const bg = document.getElementById('bg');
+
   const downloadPng = document.getElementById('downloadPng');
+  const downloadPdfBtn = document.getElementById('downloadPdf');
   const submitBtn = document.getElementById('submitBtn');
   const statusEl = document.getElementById('status');
-  const downloadPdfBtn = document.getElementById('downloadPdf');
-  
+  const fnameEl = document.getElementById('fname');
+
   const fileInput = document.getElementById('fileInput');
   const uploadBtn = document.getElementById('uploadBtn');
   const refreshProducts = document.getElementById('refreshProducts');
@@ -213,25 +217,31 @@
       return { name, path: f.name, url: pub.publicUrl };
     });
     renderProducts(productSearch.value);
-if(productItems[0]){
-  bg.crossOrigin = 'anonymous';
-  bg.src = productItems[0].url + '?v=' + Date.now();
-}
+    if(productItems[0]){
+      bg.crossOrigin = 'anonymous';
+      bg.src = productItems[0].url + '?v=' + Date.now();
+    }
   }
   function renderProducts(filter=''){
     const q = filter.trim().toLowerCase();
     const list = productItems.filter(p => p.name.toLowerCase().includes(q));
     productSel.innerHTML = list.map(p => `<option value="${p.path}">${p.name}</option>`).join('');
-    if(list[0]) bg.src = productItems.find(p=>p.path===list[0].path)?.url || '';
+    if(list[0]){
+      const first = productItems.find(p=>p.path===list[0].path);
+      if(first){
+        bg.crossOrigin = 'anonymous';
+        bg.src = first.url + (first.url.includes('?')? '&' : '?') + 'v=' + Date.now();
+      }
+    }
   }
   productSearch.addEventListener('input', ()=>renderProducts(productSearch.value));
-productSel.addEventListener('change', ()=>{
-  const item = productItems.find(p=>p.path===productSel.value);
-  if(item){
-    bg.crossOrigin = 'anonymous';
-    bg.src = item.url + (item.url.includes('?')? '&' : '?') + 'v=' + Date.now();
-  }
-});
+  productSel.addEventListener('change', ()=>{
+    const item = productItems.find(p=>p.path===productSel.value);
+    if(item){
+      bg.crossOrigin = 'anonymous';
+      bg.src = item.url + (item.url.includes('?')? '&' : '?') + 'v=' + Date.now();
+    }
+  });
 
   function baseY(){
     const h = canvas.height;
@@ -241,97 +251,105 @@ productSel.addEventListener('change', ()=>{
     return h/2;
   }
   function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if (bg.complete && bg.naturalWidth) {
-    const r = Math.max(canvas.width / bg.naturalWidth, canvas.height / bg.naturalHeight);
-    const w = bg.naturalWidth * r, h = bg.naturalHeight * r;
-    const x = (canvas.width - w) / 2, y = (canvas.height - h) / 2;
-    ctx.drawImage(bg, x, y, w, h);
-  } else {
-    ctx.fillStyle = '#ececec'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if (bg.complete && bg.naturalWidth) {
+      const r = Math.max(canvas.width / bg.naturalWidth, canvas.height / bg.naturalHeight);
+      const w = bg.naturalWidth * r, h = bg.naturalHeight * r;
+      const x = (canvas.width - w) / 2, y = (canvas.height - h) / 2;
+      ctx.drawImage(bg, x, y, w, h);
+    } else {
+      ctx.fillStyle = '#ececec'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+
+    const txt = (previewText.value || '').trim() || 'Your Text';
+    const family = fontFamilySel.value || 'Poppins';
+    const size = parseInt(fontSize.value,10) || 120;
+    const dir = directionSel.value; // horizontal | vertical-down | vertical-up
+    const y = baseY() + parseInt(valignOffset.value,10);
+
+    ctx.save();
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${size}px ${family}`;
+
+    if (dir === 'horizontal') {
+      ctx.fillText(txt, canvas.width/2, y);
+    } else {
+      ctx.translate(canvas.width/2, y);
+      ctx.rotate(dir === 'vertical-down'? Math.PI/2 : -Math.PI/2);
+      ctx.fillText(txt, 0, 0);
+    }
+    ctx.restore();
   }
-
-  const txt = (previewText.value || '').trim() || 'Your Text';
-  const family = fontFamilySel.value || 'Poppins';
-  const size = parseInt(fontSize.value,10) || 120;
-  const dir = directionSel.value; // horizontal | vertical-down | vertical-up
-  const y = baseY() + parseInt(valignOffset.value,10);
-
-  ctx.save();
-  ctx.fillStyle = TEXT_COLOR;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `${size}px ${family}`;
-
-  if (dir === 'horizontal') {
-    ctx.fillText(txt, canvas.width/2, y);
-  } else {
-    // rotate the whole line 90°
-    ctx.translate(canvas.width/2, y);
-    ctx.rotate(dir === 'vertical-down' ? Math.PI/2 : -Math.PI/2);
-    ctx.fillText(txt, 0, 0);
-  }
-  ctx.restore();
-}
   [previewText, fontFamilySel, fontSize, directionSel, valignSel, valignOffset].forEach(el=>{
     el.addEventListener('input', ()=>{ fontSizeVal.textContent = fontSize.value; valignOffsetVal.textContent = valignOffset.value; draw(); });
   });
   bg.addEventListener('load', draw);
   resetAlign.addEventListener('click', ()=>{ valignSel.value='middle'; valignOffset.value=0; valignOffsetVal.textContent='0'; draw(); });
 
+  function collectPayload(){
+    const selItem = productItems.find(p=>p.path===productSel.value);
+    const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
+    const ts = new Date().toISOString().replace(/[:.]/g,'-');
+    const filename = `${base}-${ts}.png`;
+    if (fnameEl) fnameEl.textContent = filename;
+    return {
+      productPath: selItem?.path || '',
+      productName: selItem?.name || '',
+      text: (previewText.value || 'Your Text').trim(),
+      color: TEXT_COLOR,
+      font: fontFamilySel.value || 'Poppins',
+      size: parseInt(fontSize.value,10) || 120,
+      align: valignSel.value,
+      scale: 1,
+      offx: 0,
+      offy: parseInt(valignOffset.value,10) || 0,
+      canvasW: canvas.width,
+      canvasH: canvas.height,
+      filename
+    };
+  }
+
   downloadPng.addEventListener('click', ()=>{
-    const a = document.createElement('a'); a.download = (previewText.value || 'preview') + '.png'; a.href = canvas.toDataURL('image/png'); a.click();
+    const a = document.createElement('a');
+    a.download = (fnameEl?.textContent || (previewText.value || 'preview') + '.png');
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
+
+  downloadPdfBtn.addEventListener('click', async ()=>{
+    const payload = collectPayload();
+    const pdf = new jsPDF({ orientation:'p', unit:'pt', format:[payload.canvasW, payload.canvasH] });
+    const dataUrl = canvas.toDataURL('image/png');
+    pdf.addImage(dataUrl, 'PNG', 0, 0, payload.canvasW, payload.canvasH);
+    pdf.save(payload.filename.replace(/\.png$/i,'') + '.pdf');
   });
 
   submitBtn.addEventListener('click', async ()=>{
-  const payload = collectPayload();
-  if(!payload.productPath){ alert('Please select a product.'); return; }
-  const { error } = await sb.from('orders').insert({
-    user_id: session.user.id,
-    product_path: payload.productPath,
-    product_name: payload.productName,
-    text_main: payload.text,
-    text_color: payload.color,
-    font_family: payload.font,
-    font_size: payload.size,
-    align: payload.align,
-    scale: payload.scale,
-    offset_x: payload.offx,
-    offset_y: payload.offy,
-    canvas_w: payload.canvasW,
-    canvas_h: payload.canvasH,
-    filename: payload.filename
-  });
-  if(error){ alert('Submit failed: '+error.message); return; }
-  alert('Thank you for your submission!');
-});
-  downloadPdfBtn.addEventListener('click', async ()=>{
-  const payload = collectPayload();
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation:'p', unit:'pt', format:[payload.canvasW, payload.canvasH] });
-  const dataUrl = canvas.toDataURL('image/png');
-  pdf.addImage(dataUrl, 'PNG', 0, 0, payload.canvasW, payload.canvasH);
-  pdf.save(payload.filename.replace(/\.png$/i,'') + '.pdf');
-});
-    const { error } = await sb.from('orders').insert(payload);
-    if(error){ console.error(error); statusEl.textContent = 'Save failed: ' + error.message; return; }
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' }); const pageW = pdf.internal.pageSize.getWidth();
-    pdf.setFontSize(14); pdf.text('TYESO Indonesia - Order Preview', 40, 40); pdf.setFontSize(11);
-    const lines = [
-      `Salesperson: ${payload.salesperson || '-'}`,
-      `Customer: ${payload.customer_name || '-'} (${payload.customer_phone || '-'})`,
-      `Due date: ${payload.due_date || '-'}`,
-      `Product: ${payload.product || '-'}`,
-      `Text: ${payload.preview_text}`,
-      `Font: ${payload.font_family} Size: ${payload.font_size}`,
-      `Direction: ${payload.direction} VAlign: ${payload.valign} Offset: ${payload.valign_offset}`,
-      `Color: ${payload.text_color}`
-    ];
-    let y = 70; lines.forEach(l => { pdf.text(l, 40, y); y += 18; });
-    const imgData = canvas.toDataURL('image/jpeg', 0.95); const margin = 40; const imgW = pageW - margin*2; const imgH = imgW * (canvas.height / canvas.width);
-    pdf.addImage(imgData, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
-    pdf.save(`TYESO-order-${(payload.customer_name||'customer').replace(/\s+/g,'_')}.pdf`);
-    statusEl.textContent = 'Saved to Supabase and PDF downloaded.';
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user){ alert('Please sign in.'); return; }
+    const payload = collectPayload();
+    if(!payload.productPath){ alert('Please select a product.'); return; }
+    const { error } = await sb.from('orders').insert({
+      user_id: user.id,
+      product_path: payload.productPath,
+      product_name: payload.productName,
+      text_main: payload.text,
+      text_color: payload.color,
+      font_family: payload.font,
+      font_size: payload.size,
+      align: payload.align,
+      scale: payload.scale,
+      offset_x: payload.offx,
+      offset_y: payload.offy,
+      canvas_w: payload.canvasW,
+      canvas_h: payload.canvasH,
+      filename: payload.filename
+    });
+    if(error){ alert('Submit failed: '+error.message); return; }
+    alert('Thank you for your submission!');
+    statusEl.textContent = 'Saved to Supabase.';
   });
 
   async function isAdmin(userId){
@@ -354,13 +372,13 @@ productSel.addEventListener('change', ()=>{
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
 
   async function validateImage(file){
-  if(!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Only JPG, PNG, or WebP allowed.');
-  if(file.size > 5*1024*1024) throw new Error('Max file size 5 MB.');
-  const bmp = await createImageBitmap(file);
-  const longEdge = Math.max(bmp.width, bmp.height);
-  if(longEdge < 1000) throw new Error('Image too small (min 1000px on the long edge).');
-}
-  
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Only JPG, PNG, or WebP allowed.');
+    if(file.size > 5*1024*1024) throw new Error('Max file size 5 MB.');
+    const bmp = await createImageBitmap(file);
+    const longEdge = Math.max(bmp.width, bmp.height);
+    if(longEdge < 1000) throw new Error('Image too small (min 1000px on the long edge).');
+  }
+
   uploadBtn.addEventListener('click', async ()=>{
     const files = fileInput.files; if(!files ||!files.length) return;
     adminStatus.textContent = 'Uploading…';
