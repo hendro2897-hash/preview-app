@@ -1,60 +1,51 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Text Preview</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview App</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body{font-family:sans-serif;margin:0;padding:1rem;max-width:600px;margin:auto}
-    label{display:block;margin:.5rem 0.2rem}
-    input,select,button{width:100%;padding:.5rem;margin-bottom:.5rem}
-    canvas{width:100%;border:1px solid #ccc;margin-top:1rem}
-   .row{display:flex;gap:.5rem}
-   .row>*{flex:1}
-  </style>
-  <!-- your fonts -->
-  <style>
-    @font-face{font-family:'Above-the-beyond-script';src:url('fonts/Above-the-beyond-script.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'AbramoScript';src:url('fonts/AbramoScript.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'AdleryProSwash';src:url('fonts/AdleryProSwash.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'AlexBrush-Regular';src:url('fonts/AlexBrush-Regular.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'Belwe-Condensed';src:url('fonts/Belwe-Condensed.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'BerkshireSwash-Regular';src:url('fonts/BerkshireSwash-Regular.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'PlayfairDisplay-Black';src:url('fonts/PlayfairDisplay-Black.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'Poppins-ExtraBold';src:url('fonts/Poppins-ExtraBold.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'Roboto-Black';src:url('fonts/Roboto-Black.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'White-Apricot';src:url('fonts/White-Apricot.woff2') format('woff2');font-display:swap}
-    /* add the rest of your 27 fonts the same way */
+    body{font-family:sans-serif;display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center;background:#f5f5f5}
+    .card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);width:100%;max-width:720px}
+    .hidden{display:none}
+    label{display:block;margin:8px 0 4px}
+    input,button{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%;box-sizing:border-box}
+    button{cursor:pointer;margin-top:8px}
+    #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px}
+    .row{display:flex;gap:8px}
+    .row>*{flex:1}
   </style>
 </head>
 <body>
-  <h2>Preview Generator</h2>
-  <div id="auth">
-    <input id="email" placeholder="Email"><input id="password" type="password" placeholder="Password">
-    <button id="login">Login / Sign up</button>
+  <div class="card">
+    <div id="auth">
+      <h2>Login or Sign up</h2>
+      <label>Email</label>
+      <input id="email" type="email" placeholder="you@example.com" />
+      <label>Password</label>
+      <input id="password" type="password" placeholder="••••••••" />
+      <div class="row">
+        <button id="signin">Login</button>
+        <button id="signup">Sign up</button>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>Logged in as <span id="userEmail"></span></div>
+        <button id="signout" style="width:auto;padding:8px 12px">Sign out</button>
+      </div>
+      <label>Text</label>
+      <input id="text" type="text" placeholder="your name" />
+      <label>Text color</label>
+      <input id="textColor" type="color" value="#ffffff" />
+      <canvas id="canvas" width="1080" height="1350"></canvas>
+      <img id="bg" src="fonts/bg.jpg" alt="" style="display:none">
+      <button id="download">Download PNG</button>
+    </div>
   </div>
 
-  <div id="app" style="display:none">
-    <label>Customer name</label><input id="custName">
-    <label>Phone</label><input id="custPhone">
-    <label>Due date</label><input id="dueDate" type="date">
-    <label>Search product</label><input id="search" placeholder="Type product name">
-    <div id="productList"></div>
-    <canvas id="cv" width="800" height="800"></canvas>
-    <label>Text</label><input id="txt" placeholder="Type preview text">
-    <label>Font</label><select id="font">
-      <option>AdleryPro</option><option>AlexBrush</option><!-- add the rest -->
-    </select>
-    <label>Size</label><input id="size" type="range" min="8" max="200" value="24"><span id="sizeVal">24</span>
-    <label>Direction</label><select id="dir"><option>horizontal</option><option>vertical-down</option><option>vertical-up</option></select>
-    <label>Vertical align</label><select id="valign"><option>top</option><option selected>middle</option><option>bottom</option></select>
-    <label>Vertical offset</label><input id="voff" type="range" min="-300" max="300" value="0">
-    <div class="row"><button id="reset">Reset</button><button id="download">Download PNG</button></div>
-    <div class="row"><button id="save">Save draft</button><button id="submit">Submit (PDF)</button></div>
-  </div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
 <script>
   const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
@@ -75,18 +66,46 @@
   const textColorInput = document.getElementById('textColor');
   const downloadBtn = document.getElementById('download');
 
-  const font = new FontFace('AdleryPro', 'url(fonts/AdleryPro.woff2)');
-  font.load().then(f => document.fonts.add(f)).then(draw);
+  const fonts = [
+  new FontFace('AboveTheBeyond', 'url(fonts/Above-the-beyond-script.woff2)'),
+  new FontFace('AbamoScript', 'url(fonts/AbamoScript.woff2)'),
+  new FontFace('AdleryProSwash', 'url(fonts/AdleryProSwash.woff2)'),
+  new FontFace('AlexBrush', 'url(fonts/AlexBrush-Regular.woff2)'),
+  new FontFace('BelweCondensed', 'url(fonts/Belwe-Condensed.woff2)'),
+  new FontFace('BerkshireSwash', 'url(fonts/BerkshireSwash-Regular.woff2)'),
+  new FontFace('PlayfairDisplay', 'url(fonts/PlayfairDisplay-Black.woff2)', { weight: '900' }),
+  new FontFace('Poppins', 'url(fonts/Poppins-ExtraBold.woff2)', { weight: '800' }),
+  new FontFace('Roboto', 'url(fonts/Roboto-Black.woff2)', { weight: '900' }),
+  new FontFace('WhiteApricot', 'url(fonts/White-Apricot.woff2)')
+];
 
-  function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = textColorInput.value;
-    ctx.font = '96px "AdleryPro", cursive';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(textInput.value || 'your name', canvas.width/2, canvas.height/2);
-  }
+Promise.all(fonts.map(f => f.load()))
+  .then(loaded => loaded.forEach(f => document.fonts.add(f)))
+  .then(draw)
+  .catch(err => console.error('Font load error:', err));
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = textColorInput.value;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // choose the family you want to use for the text:
+  ctx.font = '96px "AlexBrush"';
+  // other options you can swap in:
+  // ctx.font = '96px "AboveTheBeyond"';
+  // ctx.font = '96px "AbamoScript"';
+  // ctx.font = '96px "AdleryProSwash"';
+  // ctx.font = '96px "BelweCondensed"';
+  // ctx.font = '96px "BerkshireSwash"';
+  // ctx.font = '900 96px "PlayfairDisplay"';
+  // ctx.font = '800 96px "Poppins"';
+  // ctx.font = '900 96px "Roboto"';
+  // ctx.font = '96px "WhiteApricot"';
+
+  ctx.fillText(textInput.value || 'your name', canvas.width/2, canvas.height/2);
+}
   bg.onload = draw;
   textInput.addEventListener('input', draw);
   textColorInput.addEventListener('input', draw);
