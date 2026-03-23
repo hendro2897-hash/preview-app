@@ -334,6 +334,14 @@
   signUpBtn.addEventListener('click', async ()=>{ signUpBtn.disabled=true; const { error } = await sb.auth.signUp({ email: emailInput.value.trim(), password: passwordInput.value }); if(error) alert(error.message); else alert('Check your email for confirmation (if enabled).'); signUpBtn.disabled=false; refresh(); });
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
 
+  async function validateImage(file){
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('Only JPG, PNG, or WebP allowed.');
+  if(file.size > 5*1024*1024) throw new Error('Max file size 5 MB.');
+  const bmp = await createImageBitmap(file);
+  const longEdge = Math.max(bmp.width, bmp.height);
+  if(longEdge < 1000) throw new Error('Image too small (min 1000px on the long edge).');
+}
+  
   uploadBtn.addEventListener('click', async ()=>{
     const files = fileInput.files; if(!files ||!files.length) return;
     adminStatus.textContent = 'Uploading…';
