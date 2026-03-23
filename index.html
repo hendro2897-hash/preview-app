@@ -1,20 +1,63 @@
-<script type="importmap">
-{
-  "imports": {
-    "supabase": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview App</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "supabase": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+    }
   }
-}
-</script>
+  </script>
+  <style>
+    body{font-family:sans-serif;display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center;background:#f5f5f5}
+    .card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);width:100%;max-width:720px}
+    .hidden{display:none}
+    label{display:block;margin:8px 0 4px}
+    input,button{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%;box-sizing:border-box}
+    button{cursor:pointer;margin-top:8px}
+    #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px}
+    .row{display:flex;gap:8px}
+    .row>*{flex:1}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="auth">
+      <h2>Login or Sign up</h2>
+      <label>Email</label>
+      <input id="email" type="email" placeholder="you@example.com" />
+      <label>Password</label>
+      <input id="password" type="password" placeholder="••••••••" />
+      <div class="row">
+        <button id="signin">Login</button>
+        <button id="signup">Sign up</button>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>Logged in as <span id="userEmail"></span></div>
+        <button id="signout" style="width:auto;padding:8px 12px">Sign out</button>
+      </div>
+      <label>Text</label>
+      <input id="text" type="text" placeholder="your name" />
+      <label>Text color</label>
+      <input id="textColor" type="color" value="#ffffff" />
+      <canvas id="canvas" width="1080" height="1350"></canvas>
+      <img id="bg" src="fonts/bg.jpg" alt="" style="display:none">
+      <button id="download">Download PNG</button>
+    </div>
+  </div>
+
 <script type="module">
   import { createClient } from 'supabase';
+
   const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
   const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-  // ...rest of your code (keep everything else the same) ...
-</script>
-  const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const authSection = document.getElementById('auth');
   const appSection = document.getElementById('app');
@@ -62,7 +105,6 @@
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // background (cover)
     if (bg.complete && bg.naturalWidth) {
       const r = Math.max(canvas.width / bg.naturalWidth, canvas.height / bg.naturalHeight);
       const w = bg.naturalWidth * r, h = bg.naturalHeight * r;
@@ -141,3 +183,5 @@
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
   refresh();
 </script>
+</body>
+</html>
