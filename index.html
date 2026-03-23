@@ -85,8 +85,8 @@
           <select id="fontFamily"></select>
           <label>Font size</label>
           <div class="inline">
-            <input id="fontSize" type="range" min="12" max="300" value="120" />
-            <span id="fontSizeVal">120</span>
+            <input id="fontSize" type="range" min="12" max="300" value="36" />
+            <span id="fontSizeVal">36</span>
           </div>
           <label>Text direction</label>
           <select id="direction">
@@ -339,12 +339,11 @@
     `Salesperson: ${ (salesperson.value || '-').trim() }`,
     `Customer: ${ (custName.value || '-').trim() }  |  Phone: ${ (custPhone.value || '-').trim() }`,
     `Due date: ${ dueDate.value || '-' }`,
-    `Product: ${ selItem.name }  (${selItem.path})`,
+    `Product: ${ selItem.name }`,
     `Text: ${ (previewText.value || 'Your Text').trim() }`,
     `Font: ${ fontFamilySel.value || 'Poppins' }   Size: ${ parseInt(fontSize.value,10) || 120 }`,
     `Direction: ${ directionSel.value }   V-Align: ${ valignSel.value }   Offset: ${ parseInt(valignOffset.value,10) || 0 }`,
     `Text color: ${ TEXT_COLOR }`,
-    `Canvas: ${ canvas.width } x ${ canvas.height }`
   ];
   lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
 
