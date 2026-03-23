@@ -86,8 +86,8 @@
           <select id="fontFamily"></select>
           <label>Font size</label>
           <div class="inline">
-            <input id="fontSize" type="range" min="12" max="300" value="120" />
-            <span id="fontSizeVal">120</span>
+            <input id="fontSize" type="range" min="12" max="300" value="36" />
+            <span id="fontSizeVal">36</span>
           </div>
           <label>Text direction</label>
           <select id="direction">
@@ -308,7 +308,7 @@
 
     const txt = (previewText.value || '').trim() || 'Your Text';
     const family = fontFamilySel.value || 'Poppins';
-    const size = parseInt(fontSize.value,10) || 120;
+    const size = parseInt(fontSize.value,10) || 36;
     const dir = directionSel.value;
     const y = baseY() + parseInt(valignOffset.value,10);
 
@@ -361,7 +361,7 @@
       `Due date: ${ dueDate.value || '-' }`,
       `Product: ${ selItem.name }`,
       `Text: ${ (previewText.value || 'Your Text').trim() }`,
-      `Font: ${ fontFamilySel.value || 'Poppins' } Size: ${ parseInt(fontSize.value,10) || 120 }`,
+      `Font: ${ fontFamilySel.value || 'Poppins' } Size: ${ parseInt(fontSize.value,10) || 36 }`,
       `Direction: ${ directionSel.value } V-Align: ${ valignSel.value } Offset: ${ parseInt(valignOffset.value,10) || 0 }`,
       `Text color: ${ TEXT_COLOR }`
     ];
@@ -403,7 +403,7 @@
       due_date: dueDate.value,
       preview_text: previewText.value.trim(),
       font_family: fontFamilySel.value || 'Poppins',
-      font_size: parseInt(fontSize.value,10) || 120,
+      font_size: parseInt(fontSize.value,10) || 36,
       direction: directionSel.value,
       valign: valignSel.value,
       valign_offset: parseInt(valignOffset.value,10) || 0,
@@ -457,7 +457,7 @@
     const pageH = pdf.internal.pageSize.getHeight();
 
     await ensurePdfFont(pdf, r.font_family || 'Poppins');
-    const fontSizePt = Math.max(8, Math.min(300, Number(r.font_size) || 120));
+    const fontSizePt = Math.max(8, Math.min(300, Number(r.font_size) || 36));
     pdf.setFontSize(fontSizePt);
     const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
     pdf.setTextColor(cr,cg,cb);
@@ -495,65 +495,66 @@
     return pdf.output('bloburl');
   }
 
-  async function loadRecent(){
-    const { data: { user } } = await sb.auth.getUser();
-    if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
-    recentList.textContent = 'Loading…';
-    const { data, error } = await sb
+ async function loadRecent(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
+  recentList.textContent = 'Loading…';
+  const { data, error } = await sb
    .from('orders')
    .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename, text_color')
    .eq('user_id', user.id)
    .order('created_at', { ascending: false })
    .limit(3);
-    if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
-    if(!data ||!data.length){ recentList.textContent = 'No submissions yet.'; return; }
+  if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
+  if(!data ||!data.length){ recentList.textContent = 'No submissions yet.'; return; }
 
-    recentList.innerHTML = data.map(r => `
-      <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px" data-id="${r.id}">
-        <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
-        <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
-        <div class="muted">
-          ${r.font_family || 'Poppins'} ${r.font_size || ''} • ${r.direction} • ${r.valign} (${r.valign_offset || 0})
-          • Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
-        </div>
-        <div class="muted">File: ${r.filename || '-'}</div>
+  recentList.innerHTML = data.map(r => `
+    <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px" data-id="${r.id}">
+      <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
+      <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
+      <div class="muted">
+        ${r.font_family || 'Poppins'} ${r.font_size || ''} • ${r.direction} • ${r.valign} (${r.valign_offset || 0})
+        • Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
+      </div>
+      <div class="muted">File: ${r.filename || '-'}</div>
 
-        <div style="margin-top:8px">
-          <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
-          <div class="inline">
-            <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
-            <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
-          </div>
+      <div style="margin-top:8px">
+        <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
+        <div class="inline">
+          <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
+          <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
         </div>
       </div>
-    `).join('');
+    </div>
+  `).join('');
 
-    const cards = recentList.querySelectorAll('[data-id]');
-    cards.forEach(async (card) => {
-      const id = card.getAttribute('data-id');
-      const input = card.querySelector('.textonly-link');
-      const btn = card.querySelector('.copy-link');
+  // generate links using the row we already have (no extra select)
+  const cards = Array.from(recentList.querySelectorAll('[data-id]'));
+  cards.forEach(async (card, i) => {
+    const r = data[i];
+    const input = card.querySelector('.textonly-link');
+    const btn = card.querySelector('.copy-link');
+    try {
+      const url = await makeTextOnlyPdfUrl(r);
+      input.value = url;
+    } catch (e) {
+      console.warn('PDF gen failed', e);
+      input.value = '';
+      input.placeholder = 'Could not generate link';
+      btn.disabled = true;
+    }
+    btn.addEventListener('click', async () => {
+      if (!input.value) return;
       try {
-        const { data: rows, error } = await sb.from('orders').select('*').eq('id', id).limit(1);
-        if (error ||!rows ||!rows.length) throw new Error('load failed');
-        const url = await makeTextOnlyPdfUrl(rows[0]);
-        input.value = url;
-        btn.addEventListener('click', async () => {
-          try {
-            await navigator.clipboard.writeText(input.value);
-            btn.textContent = 'Copied!';
-            setTimeout(()=> btn.textContent = 'Copy link', 1200);
-          } catch {
-            input.select(); document.execCommand('copy');
-          }
-        });
-      } catch (e) {
-        input.value = '';
-        input.placeholder = 'Could not generate link';
-        btn.disabled = true;
+        await navigator.clipboard.writeText(input.value);
+        btn.textContent = 'Copied!';
+        setTimeout(()=> btn.textContent = 'Copy link', 1200);
+      } catch {
+        input.select(); document.execCommand('copy');
       }
     });
-  }
+  });
+}
 
   function clearForm(){
     salesperson.value = '';
@@ -563,7 +564,7 @@
     productSearch.value = '';
     previewText.value = '';
     fontFamilySel.value = 'Poppins';
-    fontSize.value = 120; fontSizeVal.textContent = '120';
+    fontSize.value = 36; fontSizeVal.textContent = '36';
     directionSel.value = 'horizontal';
     valignSel.value = 'middle';
     valignOffset.value = 0; valignOffsetVal.textContent = '0';
