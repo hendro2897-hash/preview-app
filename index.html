@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TYESO Indonesia Official Store - Preview Your Text Here</title>
   <script type="importmap">
+    <!-- add in <head> after the importmap -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   {
     "imports": {
       "supabase": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
@@ -319,6 +321,7 @@
   });
 
   downloadPdfBtn.addEventListener('click', async ()=>{
+  const { jsPDF } = window.jspdf; // <-- use the UMD global
   const selItem = productItems.find(p=>p.path===productSel.value);
   if(!selItem){ alert('Please select a product.'); return; }
 
@@ -354,7 +357,6 @@
   const ts = new Date().toISOString().replace(/[:.]/g,'-');
   pdf.save(`TYESO-order-${base}-${ts}.pdf`);
 });
-
   submitBtn.addEventListener('click', async ()=>{
   const { data: { user } } = await sb.auth.getUser();
   if(!user){ alert('Please sign in.'); return; }
