@@ -322,18 +322,15 @@
   const selItem = productItems.find(p=>p.path===productSel.value);
   if(!selItem){ alert('Please select a product.'); return; }
 
-  const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageW = pdf.internal.pageSize.getWidth();
   const margin = 40;
   let y = 60;
 
-  // Header
   pdf.setFontSize(16);
   pdf.text('TYESO Indonesia - Order Preview', margin, y);
   y += 24;
 
-  // Details
   pdf.setFontSize(11);
   const lines = [
     `Salesperson: ${ (salesperson.value || '-').trim() }`,
@@ -348,13 +345,11 @@
   ];
   lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
 
-  // Preview image (scaled to page width)
   const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
   const imgW = pageW - margin*2;
   const imgH = imgW * (canvas.height / canvas.width);
   pdf.addImage(dataUrl, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
 
-  // Filename
   const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
   const ts = new Date().toISOString().replace(/[:.]/g,'-');
   pdf.save(`TYESO-order-${base}-${ts}.pdf`);
