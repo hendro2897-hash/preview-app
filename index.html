@@ -3,76 +3,176 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Preview App</title>
+  <title>TYESO Indonesia Official Store - Preview Your Text Here</title>
   <script type="importmap">
   {
     "imports": {
-      "supabase": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+      "supabase": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
+      "jspdf": "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm"
     }
   }
   </script>
   <style>
-    body{font-family:sans-serif;display:flex;min-height:100vh;margin:0;align-items:center;justify-content:center;background:#f5f5f5}
-    .card{background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);width:100%;max-width:720px}
-    .hidden{display:none}
-    label{display:block;margin:8px 0 4px}
-    input,button{padding:10px;border:1px solid #ddd;border-radius:8px;width:100%;box-sizing:border-box}
-    button{cursor:pointer;margin-top:8px}
-    #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px}
-    .row{display:flex;gap:8px}
-    .row>*{flex:1}
+    body{font-family:sans-serif;margin:0;background:#f5f5f5;color:#111}
+ .wrap{max-width:980px;margin:0 auto;padding:16px}
+ .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
+    h1{font-size:20px;margin:0 0 12px} h2{font-size:16px;margin:0 0 10px}
+    label{display:block;margin:10px 0 4px;font-size:14px}
+    input,select,button{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff}
+ .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
+    #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px;background:#fafafa}
+ .hint{font-size:12px;color:#666;margin-top:6px}
+ .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
+ .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:720px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
-  <div class="card">
-    <div id="auth">
-      <h2>Login or Sign up</h2>
+  <div class="wrap">
+    <div class="card" id="authCard">
+      <h1>TYESO Indonesia Official Store - Preview Your Text Here</h1>
       <label>Email</label>
       <input id="email" type="email" placeholder="you@example.com" />
       <label>Password</label>
       <input id="password" type="password" placeholder="••••••••" />
       <div class="row">
-        <button id="signin">Login</button>
-        <button id="signup">Sign up</button>
+        <button id="signin" class="btn">Login</button>
+        <button id="signup" class="btn secondary">Sign up</button>
       </div>
+      <div class="hint">Login to access the preview form.</div>
     </div>
 
-    <div id="app" class="hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div>Logged in as <span id="userEmail"></span></div>
-        <button id="signout" style="width:auto;padding:8px 12px">Sign out</button>
+    <div class="card hidden" id="adminCard">
+      <h2>Admin — Upload Product Images</h2>
+      <input id="fileInput" type="file" accept="image/*" multiple />
+      <div class="row" style="margin-top:8px">
+        <button id="uploadBtn" class="btn">Upload</button>
+        <button id="refreshProducts" class="btn secondary">Refresh list</button>
       </div>
-      <label>Text</label>
-      <input id="text" type="text" placeholder="your name" />
-      <label>Text color</label>
-      <input id="textColor" type="color" value="#ffffff" />
+      <div class="hint" id="adminStatus"></div>
+    </div>
+
+    <div class="card hidden" id="appCard">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <div>Logged in as <b id="userEmail"></b></div>
+        <button id="signout" class="btn secondary" style="width:auto;padding:8px 12px">Sign out</button>
+      </div>
+
+      <div class="grid" style="margin-top:8px">
+        <div>
+          <label>Salesperson name</label>
+          <input id="salesperson" type="text" placeholder="e.g. Rina" />
+          <label>Customer name</label>
+          <input id="custName" type="text" placeholder="e.g. Budi" />
+          <label>Customer phone</label>
+          <input id="custPhone" type="tel" placeholder="08xxxxxxxxxx" />
+          <label>Due date</label>
+          <input id="dueDate" type="date" />
+          <label>Product (searchable)</label>
+          <input id="productSearch" type="text" placeholder="type to filter..." />
+          <select id="product"></select>
+          <div class="hint">Product list loads from Supabase Storage bucket <code>products</code>.</div>
+        </div>
+
+        <div>
+          <label>Text for preview</label>
+          <input id="previewText" type="text" placeholder="Your Text" />
+          <label>Font type</label>
+          <select id="fontFamily"></select>
+          <label>Font size</label>
+          <div class="inline">
+            <input id="fontSize" type="range" min="12" max="300" value="120" />
+            <span id="fontSizeVal">120</span>
+          </div>
+          <label>Text direction</label>
+          <select id="direction">
+            <option value="horizontal">Horizontal</option>
+            <option value="vertical-down">Top to bottom</option>
+            <option value="vertical-up">Bottom to top</option>
+          </select>
+          <div class="row">
+            <div>
+              <label>Vertical alignment</label>
+              <select id="valign">
+                <option value="top">Top</option>
+                <option value="middle" selected>Middle</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </div>
+            <div>
+              <label>Vertical offset (-300..300)</label>
+              <div class="inline">
+                <input id="valignOffset" type="range" min="-300" max="300" value="0" />
+                <span id="valignOffsetVal">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <button id="resetAlign" class="btn secondary">Reset alignment</button>
+            <div></div>
+          </div>
+        </div>
+      </div>
+
       <canvas id="canvas" width="1080" height="1350"></canvas>
-      <img id="bg" src="fonts/bg.jpg" alt="" style="display:none">
-      <button id="download">Download PNG</button>
+      <img id="bg" alt="" style="display:none" />
+      <div class="row" style="margin-top:10px">
+        <button id="downloadPng" class="btn">Save as PNG</button>
+        <button id="submitBtn" class="btn">Submit</button>
+      </div>
+      <div class="hint" id="status"></div>
     </div>
   </div>
 
 <script type="module">
   import { createClient } from 'supabase';
+  import { jsPDF } from 'jspdf';
 
   const SUPABASE_URL = "https://hbrcqqchtbinpmzqifxq.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhicmNxcWNodGJpbnBtenFpZnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjk3NTcsImV4cCI6MjA4OTc0NTc1N30.gJZCBSgW2dAv76qLJ8o_5aNe64nAgP-JpysicuLPNtA";
   const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const authSection = document.getElementById('auth');
-  const appSection = document.getElementById('app');
+  const authCard = document.getElementById('authCard');
+  const appCard = document.getElementById('appCard');
+  const adminCard = document.getElementById('adminCard');
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
   const signInBtn = document.getElementById('signin');
   const signUpBtn = document.getElementById('signup');
   const signOutBtn = document.getElementById('signout');
   const userEmailSpan = document.getElementById('userEmail');
+
+  const salesperson = document.getElementById('salesperson');
+  const custName = document.getElementById('custName');
+  const custPhone = document.getElementById('custPhone');
+  const dueDate = document.getElementById('dueDate');
+  const productSearch = document.getElementById('productSearch');
+  const productSel = document.getElementById('product');
+  const previewText = document.getElementById('previewText');
+  const fontFamilySel = document.getElementById('fontFamily');
+  const fontSize = document.getElementById('fontSize');
+  const fontSizeVal = document.getElementById('fontSizeVal');
+  const directionSel = document.getElementById('direction');
+  const valignSel = document.getElementById('valign');
+  const valignOffset = document.getElementById('valignOffset');
+  const valignOffsetVal = document.getElementById('valignOffsetVal');
+  const resetAlign = document.getElementById('resetAlign');
+
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   const bg = document.getElementById('bg');
-  const textInput = document.getElementById('text');
-  const textColorInput = document.getElementById('textColor');
-  const downloadBtn = document.getElementById('download');
+  const downloadPng = document.getElementById('downloadPng');
+  const submitBtn = document.getElementById('submitBtn');
+  const statusEl = document.getElementById('status');
+
+  const fileInput = document.getElementById('fileInput');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const refreshProducts = document.getElementById('refreshProducts');
+  const adminStatus = document.getElementById('adminStatus');
+
+  const TEXT_COLOR = 'rgb(128,128,128)';
+  const BUCKET = 'products';
 
   const fontDefs = [
     ['AbramoScript', 'fonts/AbramoScript.otf', { format: 'opentype' }],
@@ -94,93 +194,149 @@
     ['RumblebraveScript', 'fonts/Rumble-brave-script-Italic.ttf', { style: 'italic', format: 'truetype' }]
   ];
 
-  Promise.allSettled(
-    fontDefs.map(([name, url, options = {}]) =>
-      new FontFace(name, `url(${url})`, options).load()
-        .then(f => { document.fonts.add(f); return name; })
-        .catch(e => { console.warn(`Failed to load font ${name} from ${url}:`, e); throw new Error(`Font load error for ${name}`); })
-    )
-  ).finally(() => { draw(); });
+  fontFamilySel.innerHTML = fontDefs.map(([name]) => `<option value="${name}">${name}</option>`).join('');
+  Promise.allSettled(fontDefs.map(([name, url, options = {}]) =>
+    new FontFace(name, `url(${url})`, options).load().then(f => { document.fonts.add(f); return name; }).catch(e=>{console.warn(e);})
+  )).finally(()=>draw());
 
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  let productItems = []; // {name, path, url}
+  async function loadProducts(){
+    productSel.innerHTML = '';
+    const { data, error } = await sb.storage.from(BUCKET).list('', { limit: 1000, sortBy: { column: 'name', order: 'asc' }});
+    if(error){ console.warn(error); return; }
+    const files = (data||[]).filter(x => x.name &&!x.name.endsWith('/'));
+    productItems = files.map(f => {
+      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(f.name);
+      const name = f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g,' ');
+      return { name, path: f.name, url: pub.publicUrl };
+    });
+    renderProducts(productSearch.value);
+    if(productItems[0]) bg.src = productItems[0].url;
+  }
+  function renderProducts(filter=''){
+    const q = filter.trim().toLowerCase();
+    const list = productItems.filter(p => p.name.toLowerCase().includes(q));
+    productSel.innerHTML = list.map(p => `<option value="${p.path}">${p.name}</option>`).join('');
+    if(list[0]) bg.src = productItems.find(p=>p.path===list[0].path)?.url || '';
+  }
+  productSearch.addEventListener('input', ()=>renderProducts(productSearch.value));
+  productSel.addEventListener('change', ()=>{
+    const item = productItems.find(p=>p.path===productSel.value);
+    if(item) bg.src = item.url;
+  });
 
+  function baseY(){
+    const h = canvas.height;
+    const align = valignSel.value;
+    if(align === 'top') return 120;
+    if(align === 'bottom') return h - 120;
+    return h/2;
+  }
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     if (bg.complete && bg.naturalWidth) {
       const r = Math.max(canvas.width / bg.naturalWidth, canvas.height / bg.naturalHeight);
       const w = bg.naturalWidth * r, h = bg.naturalHeight * r;
       const x = (canvas.width - w) / 2, y = (canvas.height - h) / 2;
       ctx.drawImage(bg, x, y, w, h);
     } else {
-      ctx.fillStyle = '#eee';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ececec'; ctx.fillRect(0,0,canvas.width,canvas.height);
     }
-
-    const txt = (textInput.value || '').trim() || 'Your Text';
-    ctx.fillStyle = textColorInput.value || '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    let y = 120;
-    const step = 100;
-
-    const lines = [
-      ['80px AbramoScript', y],
-      ['60px AlexBrush', y+=step],
-      ['900 70px PlayfairDisplay', y+=step],
-      ['900 50px Poppins', y+=step],
-      ['italic 70px RumblebraveScript', y+=step],
-      ['normal 40px MagnoliaScript', y+=step],
-      ['60px BerkshireSwash', y+=step],
-      ['50px GloriaHallelujah', y+=step],
-      ['70px MoonTime', y+=step],
-      ['900 60px Roboto', y+=step]
-    ];
-
-    lines.forEach(([font, yy], i) => {
-      ctx.font = font;
-      ctx.fillText(txt, canvas.width / 2, i===0?120:yy);
-    });
+    const txt = (previewText.value || '').trim() || 'Your Text';
+    const family = fontFamilySel.value || 'Poppins';
+    const size = parseInt(fontSize.value,10) || 120;
+    const dir = directionSel.value;
+    const y = baseY() + parseInt(valignOffset.value,10);
+    ctx.fillStyle = TEXT_COLOR; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if(dir === 'horizontal'){
+      ctx.font = `${size}px ${family}`; ctx.fillText(txt, canvas.width/2, y);
+    }else{
+      ctx.font = `${size}px ${family}`;
+      const chars = [...txt]; const lineH = size * 1.05; const totalH = chars.length * lineH;
+      let startY = y - totalH/2 + lineH/2; if(dir === 'vertical-up') chars.reverse();
+      chars.forEach((ch,i)=>{ ctx.fillText(ch, canvas.width/2, startY + i*lineH); });
+    }
   }
-
-  textInput.addEventListener('input', draw);
-  textColorInput.addEventListener('input', draw);
+  [previewText, fontFamilySel, fontSize, directionSel, valignSel, valignOffset].forEach(el=>{
+    el.addEventListener('input', ()=>{ fontSizeVal.textContent = fontSize.value; valignOffsetVal.textContent = valignOffset.value; draw(); });
+  });
   bg.addEventListener('load', draw);
+  resetAlign.addEventListener('click', ()=>{ valignSel.value='middle'; valignOffset.value=0; valignOffsetVal.textContent='0'; draw(); });
 
-  downloadBtn.addEventListener('click', ()=>{
-    const a = document.createElement('a');
-    a.download = 'preview.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
+  downloadPng.addEventListener('click', ()=>{
+    const a = document.createElement('a'); a.download = (previewText.value || 'preview') + '.png'; a.href = canvas.toDataURL('image/png'); a.click();
   });
 
+  submitBtn.addEventListener('click', async ()=>{
+    statusEl.textContent = 'Submitting…';
+    const { data: { user } } = await sb.auth.getUser(); if(!user){ alert('Please login'); return; }
+    const item = productItems.find(p=>p.path===productSel.value);
+    const payload = {
+      user_id: user.id,
+      salesperson: salesperson.value || null,
+      customer_name: custName.value || null,
+      customer_phone: custPhone.value || null,
+      due_date: dueDate.value || null,
+      product: item?.name || null,
+      preview_text: previewText.value || 'Your Text',
+      font_family: fontFamilySel.value,
+      font_size: parseInt(fontSize.value,10),
+      direction: directionSel.value,
+      valign: valignSel.value,
+      valign_offset: parseInt(valignOffset.value,10),
+      text_color: TEXT_COLOR
+    };
+    const { error } = await sb.from('orders').insert(payload);
+    if(error){ console.error(error); statusEl.textContent = 'Save failed: ' + error.message; return; }
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' }); const pageW = pdf.internal.pageSize.getWidth();
+    pdf.setFontSize(14); pdf.text('TYESO Indonesia - Order Preview', 40, 40); pdf.setFontSize(11);
+    const lines = [
+      `Salesperson: ${payload.salesperson || '-'}`,
+      `Customer: ${payload.customer_name || '-'} (${payload.customer_phone || '-'})`,
+      `Due date: ${payload.due_date || '-'}`,
+      `Product: ${payload.product || '-'}`,
+      `Text: ${payload.preview_text}`,
+      `Font: ${payload.font_family} Size: ${payload.font_size}`,
+      `Direction: ${payload.direction} VAlign: ${payload.valign} Offset: ${payload.valign_offset}`,
+      `Color: ${payload.text_color}`
+    ];
+    let y = 70; lines.forEach(l => { pdf.text(l, 40, y); y += 18; });
+    const imgData = canvas.toDataURL('image/jpeg', 0.95); const margin = 40; const imgW = pageW - margin*2; const imgH = imgW * (canvas.height / canvas.width);
+    pdf.addImage(imgData, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
+    pdf.save(`TYESO-order-${(payload.customer_name||'customer').replace(/\s+/g,'_')}.pdf`);
+    statusEl.textContent = 'Saved to Supabase and PDF downloaded.';
+  });
+
+  async function isAdmin(userId){
+    const { data } = await sb.from('profiles').select('is_admin').eq('user_id', userId).maybeSingle();
+    return!!data?.is_admin;
+  }
   async function refresh(){
     const { data: { user } } = await sb.auth.getUser();
     if(user){
-      authSection.classList.add('hidden');
-      appSection.classList.remove('hidden');
-      userEmailSpan.textContent = user.email || '';
+      authCard.classList.add('hidden'); appCard.classList.remove('hidden'); userEmailSpan.textContent = user.email || '';
+      await loadProducts();
+      if(await isAdmin(user.id)) adminCard.classList.remove('hidden'); else adminCard.classList.add('hidden');
       draw();
     }else{
-      authSection.classList.remove('hidden');
-      appSection.classList.add('hidden');
+      authCard.classList.remove('hidden'); appCard.classList.add('hidden'); adminCard.classList.add('hidden');
     }
   }
-  signInBtn.addEventListener('click', async ()=>{
-    signInBtn.disabled = true;
-    const { error } = await sb.auth.signInWithPassword({ email: emailInput.value.trim(), password: passwordInput.value });
-    if(error) alert(error.message);
-    signInBtn.disabled = false;
-    refresh();
-  });
-  signUpBtn.addEventListener('click', async ()=>{
-    signUpBtn.disabled = true;
-    const { error } = await sb.auth.signUp({ email: emailInput.value.trim(), password: passwordInput.value });
-    if(error) alert(error.message);
-    else alert('Check your email for confirmation (if enabled).');
-    signUpBtn.disabled = false;
-    refresh();
-  });
+  signInBtn.addEventListener('click', async ()=>{ signInBtn.disabled=true; const { error } = await sb.auth.signInWithPassword({ email: emailInput.value.trim(), password: passwordInput.value }); if(error) alert(error.message); signInBtn.disabled=false; refresh(); });
+  signUpBtn.addEventListener('click', async ()=>{ signUpBtn.disabled=true; const { error } = await sb.auth.signUp({ email: emailInput.value.trim(), password: passwordInput.value }); if(error) alert(error.message); else alert('Check your email for confirmation (if enabled).'); signUpBtn.disabled=false; refresh(); });
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
+
+  uploadBtn.addEventListener('click', async ()=>{
+    const files = fileInput.files; if(!files ||!files.length) return;
+    adminStatus.textContent = 'Uploading…';
+    for(const f of files){
+      const path = `${Date.now()}-${f.name}`.replace(/\s+/g,'_');
+      const { error } = await sb.storage.from(BUCKET).upload(path, f, { upsert: false });
+      if(error){ console.error(error); adminStatus.textContent = 'Upload failed: ' + error.message; return; }
+    }
+    adminStatus.textContent = 'Done.'; fileInput.value = ''; await loadProducts();
+  });
+  refreshProducts.addEventListener('click', loadProducts);
   refresh();
 </script>
 </body>
