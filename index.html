@@ -464,12 +464,7 @@
     const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/i.exec(rgbStr || '');
     return m? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [128,128,128];
   }
-const FONT_FILE_MAP = {
-  Poppins: 'fonts/Poppins-Black.ttf',
-  Roboto: 'fonts/Roboto-Black.ttf',
-  PlayfairDisplay: 'fonts/PlayfairDisplay-Black.ttf',
-  // add more TTF/OTF files you have here
-};
+
 async function ensurePdfFont(pdf, family){
   const file = FONT_FILE_MAP[family];
   if (!file) { pdf.setFont('helvetica','normal'); return; }
