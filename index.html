@@ -485,8 +485,8 @@ async function makeTextOnlyPdfUrl(r){
 
   // Only apply special weight/spacing for AbramoScript
   const isAbramo = family.toLowerCase() === 'abramoscript';
-  const letterSpacing = isAbramo? (Number(r.letter_spacing) || 3) : 0; // default 2pt for Abramo
-  const extraWeight = isAbramo? (Number(r.extra_weight) || 1.5) : 0; // stroke width for Abramo
+  const letterSpacing = isAbramo? (Number(r.letter_spacing) || 5) : 0; // default 2pt for Abramo
+  const extraWeight = isAbramo? (Number(r.extra_weight) || 5) : 0; // stroke width for Abramo
 
   if (!isAbramo) {
     // normal vector text, centered, wrapped
