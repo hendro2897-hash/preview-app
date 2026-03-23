@@ -233,30 +233,38 @@
     return h/2;
   }
   function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    if (bg.complete && bg.naturalWidth) {
-      const r = Math.max(canvas.width / bg.naturalWidth, canvas.height / bg.naturalHeight);
-      const w = bg.naturalWidth * r, h = bg.naturalHeight * r;
-      const x = (canvas.width - w) / 2, y = (canvas.height - h) / 2;
-      ctx.drawImage(bg, x, y, w, h);
-    } else {
-      ctx.fillStyle = '#ececec'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    }
-    const txt = (previewText.value || '').trim() || 'Your Text';
-    const family = fontFamilySel.value || 'Poppins';
-    const size = parseInt(fontSize.value,10) || 120;
-    const dir = directionSel.value;
-    const y = baseY() + parseInt(valignOffset.value,10);
-    ctx.fillStyle = TEXT_COLOR; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    if(dir === 'horizontal'){
-      ctx.font = `${size}px ${family}`; ctx.fillText(txt, canvas.width/2, y);
-    }else{
-      ctx.font = `${size}px ${family}`;
-      const chars = [...txt]; const lineH = size * 1.05; const totalH = chars.length * lineH;
-      let startY = y - totalH/2 + lineH/2; if(dir === 'vertical-up') chars.reverse();
-      chars.forEach((ch,i)=>{ ctx.fillText(ch, canvas.width/2, startY + i*lineH); });
-    }
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (bg.complete && bg.naturalWidth) {
+    const r = Math.max(canvas.width / bg.naturalWidth, canvas.height / bg.naturalHeight);
+    const w = bg.naturalWidth * r, h = bg.naturalHeight * r;
+    const x = (canvas.width - w) / 2, y = (canvas.height - h) / 2;
+    ctx.drawImage(bg, x, y, w, h);
+  } else {
+    ctx.fillStyle = '#ececec'; ctx.fillRect(0,0,canvas.width,canvas.height);
   }
+
+  const txt = (previewText.value || '').trim() || 'Your Text';
+  const family = fontFamilySel.value || 'Poppins';
+  const size = parseInt(fontSize.value,10) || 120;
+  const dir = directionSel.value; // horizontal | vertical-down | vertical-up
+  const y = baseY() + parseInt(valignOffset.value,10);
+
+  ctx.save();
+  ctx.fillStyle = TEXT_COLOR;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${size}px ${family}`;
+
+  if (dir === 'horizontal') {
+    ctx.fillText(txt, canvas.width/2, y);
+  } else {
+    // rotate the whole line 90°
+    ctx.translate(canvas.width/2, y);
+    ctx.rotate(dir === 'vertical-down' ? Math.PI/2 : -Math.PI/2);
+    ctx.fillText(txt, 0, 0);
+  }
+  ctx.restore();
+}
   [previewText, fontFamilySel, fontSize, directionSel, valignSel, valignOffset].forEach(el=>{
     el.addEventListener('input', ()=>{ fontSizeVal.textContent = fontSize.value; valignOffsetVal.textContent = valignOffset.value; draw(); });
   });
