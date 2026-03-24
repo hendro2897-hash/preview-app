@@ -538,65 +538,102 @@ async function makeTextOnlyPdfUrl(r){
   return pdf.output('bloburl');
 }
   async function loadRecent(){
-    const { data: { user } } = await sb.auth.getUser();
-    if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
-    recentList.textContent = 'Loading…';
-    const { data, error } = await sb
-     .from('orders')
-     .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename, text_color')
-     .eq('user_id', user.id)
-     .order('created_at', { ascending: false })
-     .limit(3);
-    if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
-    if(!data ||!data.length){ recentList.textContent = 'No submissions yet.'; return; }
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
+  recentList.textContent = 'Loading…';
+  const { data, error } = await sb
+  .from('orders')
+  .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename, text_color, product_path')
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false })
+  .limit(3);
+  if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
+  if(!data ||!data.length){ recentList.textContent = 'No submissions yet.'; return; }
 
-    recentList.innerHTML = data.map(r => `
-      <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px" data-id="${r.id}">
-        <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
-        <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
-        <div class="muted">
-          ${r.font_family || 'Poppins'} ${r.font_size || ''} • ${r.direction} • ${r.valign} (${r.valign_offset || 0})
-          • Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
-        </div>
-        <div class="muted">File: ${r.filename || '-'}</div>
+  recentList.innerHTML = data.map(r => `
+    <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px" data-id="${r.id}">
+      <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
+      <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
+      <div class="muted">
+        ${r.font_family || 'Poppins'} ${r.font_size || ''} • ${r.direction} • ${r.valign} (${r.valign_offset || 0})
+        • Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
+      </div>
+      <div class="muted">File: ${r.filename || '-'}</div>
 
-        <div style="margin-top:8px">
-          <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
-          <div class="inline">
-            <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
-            <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
-          </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <button class="btn secondary dl-png" style="width:auto;padding:6px 10px" title="Save PNG">🖼️ PNG</button>
+        <button class="btn secondary dl-pdf" style="width:auto;padding:6px 10px" title="Download PDF">📄 PDF</button>
+      </div>
+
+      <div style="margin-top:8px">
+        <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
+        <div class="inline">
+          <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
+          <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
         </div>
       </div>
-    `).join('');
+    </div>
+  `).join('');
 
-    const cards = Array.from(recentList.querySelectorAll('[data-id]'));
-    cards.forEach(async (card, i) => {
-      const r = data[i];
-      const input = card.querySelector('.textonly-link');
-      const btn = card.querySelector('.copy-link');
+  const cards = Array.from(recentList.querySelectorAll('[data-id]'));
+  cards.forEach(async (card, i) => {
+    const r = data[i];
+
+    // PNG download (re-render from product image + text)
+    card.querySelector('.dl-png').addEventListener('click', async () => {
+      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
+        const x = c.getContext('2d');
+        const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
+        const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
+        const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
+        x.drawImage(img, ox, oy, w, h);
+        const size = r.font_size || 36;
+        const y = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
+        x.save();
+        x.fillStyle = r.text_color || TEXT_COLOR;
+        x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.font = `${size}px ${r.font_family || 'Poppins'}`;
+        if (r.direction === 'horizontal') {
+          x.fillText(r.preview_text || 'Your Text', c.width/2, y);
+        } else {
+          x.translate(c.width/2, y);
+          x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2);
+          x.fillText(r.preview_text || 'Your Text', 0, 0);
+        }
+        x.restore();
+        const a = document.createElement('a');
+        a.download = r.filename || 'preview.png';
+        a.href = c.toDataURL('image/png');
+        a.click();
+      };
+      img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now();
+    });
+
+    // PDF (text-only vector)
+    card.querySelector('.dl-pdf').addEventListener('click', async () => {
       try {
         const url = await makeTextOnlyPdfUrl(r);
-        input.value = url;
-      } catch (e) {
-        console.warn('PDF gen failed', e);
-        input.value = '';
-        input.placeholder = 'Could not generate link';
-        btn.disabled = true;
-      }
-      btn.addEventListener('click', async () => {
-        if (!input.value) return;
-        try {
-          await navigator.clipboard.writeText(input.value);
-          btn.textContent = 'Copied!';
-          setTimeout(()=> btn.textContent = 'Copy link', 1200);
-        } catch {
-          input.select(); document.execCommand('copy');
-        }
-      });
+        const a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.rel = 'noopener';
+        a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf';
+        a.click();
+      } catch(e){ console.warn(e); alert('PDF failed'); }
     });
-  }
 
+    // Link field
+    const input = card.querySelector('.textonly-link');
+    const btn = card.querySelector('.copy-link');
+    try { input.value = await makeTextOnlyPdfUrl(r); }
+    catch(e){ console.warn(e); input.placeholder = 'Could not generate link'; btn.disabled = true; }
+    btn.addEventListener('click', async () => {
+      if (!input.value) return;
+      try { await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=> btn
+        
   function clearForm(){
     salesperson.value = '';
     custName.value = '';
