@@ -74,9 +74,10 @@
           <label>Due date</label>
           <input id="dueDate" type="date" />
           <label>Product (searchable)</label>
-          <input id="productSearch" type="text" placeholder="type to filter..." />
-          <select id="product"></select>
-          <div class="hint">Product list loads from Supabase Storage bucket <code>products</code>.</div>
+<input id="productSearch" type="text" placeholder="type to filter..." />
+<select id="product"></select>
+<div class="hint">Product list loads from Supabase Storage bucket <code>products</code>.</div>
+<div id="productList" class="hint" style="margin-top:8px"></div>
         </div>
 
         <div>
@@ -256,34 +257,55 @@
   });
 
   async function loadProducts(){
-    productSel.innerHTML = '';
-    const { data, error } = await sb.storage.from(BUCKET).list('', { limit: 1000, sortBy: { column: 'name', order: 'asc' }});
-    if(error){ console.warn(error); return; }
-    const files = (data||[]).filter(x => x.name &&!x.name.endsWith('/'));
-    productItems = files.map(f => {
-      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(f.name);
-      const name = f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g,' ');
-      return { name, path: f.name, url: pub.publicUrl };
-    });
-    renderProducts(productSearch.value);
-    if(productItems[0]){
+  productSel.innerHTML = '';
+  const listEl = document.getElementById('productList'); // add this container in your HTML
+  if (listEl) listEl.innerHTML = 'Loading…';
+
+  const { data, error } = await sb
+   .from('files')
+   .select('storage_key, display_name, created_at')
+   .order('created_at', { ascending: false })
+   .limit(1000);
+
+  if (error) {
+    console.warn(error);
+    if (listEl) listEl.textContent = 'Failed to load products.';
+    return;
+  }
+
+  productItems = (data || []).map(row => {
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(row.storage_key);
+    const name = row.display_name || row.storage_key.split('/').pop();
+    return { name, path: row.storage_key, url: pub.publicUrl };
+  });
+
+  renderProducts(productSearch.value);
+
+  if (productItems[0]) {
+    bg.crossOrigin = 'anonymous';
+    bg.src = productItems[0].url + '?v=' + Date.now();
+    updateSubmitState();
+  }
+
+  if (listEl) {
+    listEl.innerHTML = productItems.map(p =>
+      `<div><a href="${p.url}" download="${p.name}" target="_blank" rel="noopener">${p.name}</a></div>`
+    ).join('');
+  }
+}
+
+function renderProducts(filter=''){
+  const q = filter.trim().toLowerCase();
+  const list = productItems.filter(p => p.name.toLowerCase().includes(q));
+  productSel.innerHTML = list.map(p => `<option value="${p.path}">${p.name}</option>`).join('');
+  if (list[0]) {
+    const first = productItems.find(p => p.path === list[0].path);
+    if (first) {
       bg.crossOrigin = 'anonymous';
-      bg.src = productItems[0].url + '?v=' + Date.now();
-      updateSubmitState();
+      bg.src = first.url + (first.url.includes('?')? '&' : '?') + 'v=' + Date.now();
     }
   }
-  function renderProducts(filter=''){
-    const q = filter.trim().toLowerCase();
-    const list = productItems.filter(p => p.name.toLowerCase().includes(q));
-    productSel.innerHTML = list.map(p => `<option value="${p.path}">${p.name}</option>`).join('');
-    if(list[0]){
-      const first = productItems.find(p=>p.path===list[0].path);
-      if(first){
-        bg.crossOrigin = 'anonymous';
-        bg.src = first.url + (first.url.includes('?')? '&' : '?') + 'v=' + Date.now();
-      }
-    }
-  }
+}
   productSearch.addEventListener('input', ()=>renderProducts(productSearch.value));
   productSel.addEventListener('change', ()=>{
     const item = productItems.find(p=>p.path===productSel.value);
@@ -627,17 +649,40 @@ async function makeTextOnlyPdfUrl(r){
   signUpBtn.addEventListener('click', async ()=>{ signUpBtn.disabled=true; const { error } = await sb.auth.signUp({ email: emailInput.value.trim(), password: passwordInput.value }); if(error) alert(error.message); else alert('Check your email for confirmation (if enabled).'); signUpBtn.disabled=false; refresh(); });
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
 
-  uploadBtn.addEventListener('click', async ()=>{
-    const files = fileInput.files; if (!files ||!files.length) { return; }
-    adminStatus.textContent = 'Uploading…';
-    for(const f of files){
-      const path = `${Date.now()}-${f.name}`.replace(/\s+/g,'_');
-      const { error } = await sb.storage.from(BUCKET).upload(path, f, { upsert: false });
-      if(error){ console.error(error); adminStatus.textContent = 'Upload failed: ' + error.message; return; }
+  uploadBtn.addEventListener('click', async () => {
+  const files = fileInput.files;
+  if (!files || !files.length) return;
+
+  adminStatus.textContent = 'Uploading…';
+
+  for (const f of files) {
+    const ext = (f.name.split('.').pop() || 'bin').toLowerCase();
+    const key = `uploads/${crypto.randomUUID()}.${ext}`; // hidden storage key
+
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(key, f, { upsert: false });
+    if (upErr) {
+      console.error(upErr);
+      adminStatus.textContent = 'Upload failed: ' + upErr.message;
+      return;
     }
-    adminStatus.textContent = 'Done.'; fileInput.value = ''; await loadProducts();
-  });
-  refreshProducts.addEventListener('click', loadProducts);
+
+    const { error: dbErr } = await sb.from('files').insert({
+      storage_key: key,       // hidden
+      display_name: f.name    // what users will see
+    });
+    if (dbErr) {
+      console.error(dbErr);
+      adminStatus.textContent = 'DB insert failed: ' + dbErr.message;
+      return;
+    }
+  }
+
+  adminStatus.textContent = 'Done.';
+  fileInput.value = '';
+  await loadProducts();
+});
+
+refreshProducts.addEventListener('click', loadProducts);
 
   refresh();
 </script>
