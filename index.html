@@ -286,12 +286,6 @@
     bg.src = productItems[0].url + '?v=' + Date.now();
     updateSubmitState();
   }
-
-  if (listEl) {
-    listEl.innerHTML = productItems.map(p =>
-      `<div><a href="${p.url}" download="${p.name}" target="_blank" rel="noopener">${p.name}</a></div>`
-    ).join('');
-  }
 }
 
 function renderProducts(filter=''){
