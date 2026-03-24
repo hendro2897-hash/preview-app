@@ -429,6 +429,8 @@
     try { return new Date(d).toLocaleString(); } catch { return d || '-'; }
   }
 
+  const PREVIEW_SCALE = 5; // preview is 1:5
+  
   // --- text-only PDF helpers (vector, horizontal) ---
 const FONT_FILE_MAP = {
   Poppins: 'fonts/Poppins-Black.ttf',
@@ -490,7 +492,11 @@ async function makeTextOnlyPdfUrl(r){
   const pageH = pdf.internal.pageSize.getHeight();
 
   await ensurePdfFont(pdf, r.font_family || 'Poppins');
-  const fontSizePt = Math.max(8, Math.min(300, Number(r.font_size) || 36));
+
+  // preview size (canvas) → production size (PDF) = 5×
+  const previewSizePt = Math.max(8, Math.min(300, Number(r.font_size) || 36));
+  const fontSizePt = previewSizePt * PREVIEW_SCALE;
+
   pdf.setFontSize(fontSizePt);
   const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
   pdf.setTextColor(cr,cg,cb);
