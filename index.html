@@ -508,7 +508,8 @@ async function ensurePdfFont(pdf, family){
 
 async function makeTextOnlyPdfUrl(r){
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit: 'pt', format: 'a4', hotfixes: ['px_scaling'] });
+  // A3 landscape (≈ 1190.55 x 841.89 pt), much wider
+  const pdf = new jsPDF({ unit: 'pt', format: 'a3', orientation: 'l', hotfixes: ['px_scaling'] });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
 
