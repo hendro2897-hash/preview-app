@@ -379,12 +379,10 @@ function renderProducts(filter=''){
     const lines = [
       `Salesperson: ${ (salesperson.value || '-').trim() }`,
       `Customer: ${ (custName.value || '-').trim() } | Phone: ${ (custPhone.value || '-').trim() }`,
-      `Due date: ${ dueDate.value || '-' }`,
-      `Product: ${ selItem.name }`,
-      `Text: ${ (previewText.value || 'Your Text').trim() }`,
-      `Font: ${ fontFamilySel.value || 'Poppins' } Size: ${ parseInt(fontSize.value,10) || 36 }`,
-      `Direction: ${ directionSel.value } V-Align: ${ valignSel.value } Offset: ${ parseInt(valignOffset.value,10) || 0 }`,
-      `Text color: ${ TEXT_COLOR }`
+      `Due date: ${ dueDate.value || '-' } | Skala : 1:5 `,
+      `Product: ${ selItem.name } | Text: ${ (previewText.value || 'Your Text').trim() }`,
+      `Font: ${ fontFamilySel.value || 'Poppins' } | Size: ${ parseInt(fontSize.value,10) || 36 }`,
+      `Direction: ${ directionSel.value } | V-Align: ${ valignSel.value } | Offset: ${ parseInt(valignOffset.value,10) || 0 }`
     ];
     lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
 
