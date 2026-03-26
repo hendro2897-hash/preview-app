@@ -333,9 +333,12 @@
   productItems = (data || []).map(row => {
     const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(row.storage_key);
     const raw = row.display_name || row.storage_key.split('/').pop() || '';
-    const name = raw.replace(/\.[^.]+$/, ''); // <-- strip.png/.jpg/.webp
+    const name = raw.replace(/\.[^.]+$/, ''); // strip.png/.jpg/.webp
     return { name, path: row.storage_key, url: pub.publicUrl };
   });
+
+  // NEW: sort A–Z by cleaned display name
+  productItems.sort((a,b)=> a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
   renderProducts(productSearch.value);
 
