@@ -17,18 +17,19 @@
 
   <style>
     body{font-family:sans-serif;margin:0;background:#f5f5f5;color:#111}
-.wrap{max-width:980px;margin:0 auto;padding:16px}
-.card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  .card{background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
     h1{font-size:20px;margin:0 0 12px} h2{font-size:16px;margin:0 0 10px}
     label{display:block;margin:10px 0 4px;font-size:14px}
     input,select,button{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff}
-.row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
+  .row{display:flex;gap:10px}.row>*{flex:1}.hidden{display:none}
     #canvas{width:100%;height:auto;border:1px solid #eee;border-radius:8px;margin-top:12px;background:#fafafa}
-.hint{font-size:12px;color:#666;margin-top:6px}
-.inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
-.btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.muted{color:#666;font-size:12px}
+  .hint{font-size:12px;color:#666;margin-top:6px}
+  .inline{display:flex;align-items:center;gap:8px}.inline input[type="range"]{flex:1}
+  .btn{cursor:pointer}.btn.secondary{background:#f3f3f3}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .muted{color:#666;font-size:12px}
+    table th, table td { vertical-align: top; }
     @media (max-width:720px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -47,14 +48,63 @@
       <div class="hint">Login to access the preview form.</div>
     </div>
 
-    <div class="card hidden" id="adminCard">
-      <h2>Admin — Upload Product Images</h2>
+    <div class="card hidden" id="adminHome">
+      <h2>Admin</h2>
+      <div class="row">
+        <button id="goUpload" class="btn">Update images & see data</button>
+        <button id="goGenerator" class="btn secondary">Open generator (preview app)</button>
+      </div>
+      <div class="hint">Pick a task. You can switch anytime from the top bar.</div>
+    </div>
+
+    <div class="card hidden" id="adminDataCard">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h2 style="margin:0">Upload images & submissions</h2>
+        <div class="row" style="gap:8px">
+          <button id="backToAdminHome" class="btn secondary" style="width:auto;padding:8px 12px">Back</button>
+          <button id="openGeneratorFromAdmin" class="btn" style="width:auto;padding:8px 12px">Open generator</button>
+        </div>
+      </div>
+
+      <h3 style="margin:12px 0 6px">Upload product images</h3>
       <input id="fileInput" type="file" accept="image/*" multiple />
       <div class="row" style="margin-top:8px">
         <button id="uploadBtn" class="btn">Upload</button>
         <button id="refreshProducts" class="btn secondary">Refresh list</button>
       </div>
       <div class="hint" id="adminStatus"></div>
+
+      <h3 style="margin:16px 0 6px">All submissions</h3>
+      <div class="hint">Latest first. Use the action buttons to export.</div>
+      <div style="overflow:auto;margin-top:8px">
+        <table id="adminTable" style="width:100%;border-collapse:collapse;font-size:14px">
+          <thead>
+            <tr style="text-align:left;border-bottom:1px solid #eee">
+              <th style="padding:8px">Created</th>
+              <th style="padding:8px">Salesperson</th>
+              <th style="padding:8px">Customer</th>
+              <th style="padding:8px">Due</th>
+              <th style="padding:8px">Product</th>
+              <th style="padding:8px">PNG</th>
+              <th style="padding:8px">PDF</th>
+              <th style="padding:8px">Text-only link</th>
+            </tr>
+          </thead>
+          <tbody id="adminTbody">
+            <tr><td colspan="8" style="padding:10px;color:#666">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card hidden" id="adminCard">
+      <h2>Admin — Upload Product Images</h2>
+      <input id="fileInputLegacy" type="file" accept="image/*" multiple />
+      <div class="row" style="margin-top:8px">
+        <button id="uploadBtnLegacy" class="btn">Upload</button>
+        <button id="refreshProductsLegacy" class="btn secondary">Refresh list</button>
+      </div>
+      <div class="hint" id="adminStatusLegacy"></div>
     </div>
 
     <div class="card hidden" id="appCard">
@@ -74,9 +124,9 @@
           <label>Due date</label>
           <input id="dueDate" type="date" />
           <label>Product (searchable)</label>
-<input id="productSearch" type="text" placeholder="type to filter..." />
-<select id="product"></select>
-<div class="hint">Product list loads from Supabase Storage bucket <code>products</code>.</div>
+          <input id="productSearch" type="text" placeholder="type to filter..." />
+          <select id="product"></select>
+          <div class="hint">Product list loads from Supabase Storage bucket <code>products</code>.</div>
         </div>
 
         <div>
@@ -130,7 +180,6 @@
       <div class="hint" id="status"></div>
     </div>
 
-    <!-- Recent submissions: hidden until login -->
     <div class="card hidden" id="recentCard" style="margin-top:12px">
       <div class="row" style="align-items:center;justify-content:space-between">
         <h2 style="margin:0">Recent submissions (latest 3)</h2>
@@ -150,6 +199,8 @@
   const authCard = document.getElementById('authCard');
   const appCard = document.getElementById('appCard');
   const adminCard = document.getElementById('adminCard');
+  const adminHome = document.getElementById('adminHome');
+  const adminDataCard = document.getElementById('adminDataCard');
   const recentCard = document.getElementById('recentCard');
 
   const emailInput = document.getElementById('email');
@@ -193,6 +244,12 @@
   const recentList = document.getElementById('recentList');
   const clearFormBtn = document.getElementById('clearFormBtn');
 
+  const goUpload = document.getElementById('goUpload');
+  const goGenerator = document.getElementById('goGenerator');
+  const backToAdminHome = document.getElementById('backToAdminHome');
+  const openGeneratorFromAdmin = document.getElementById('openGeneratorFromAdmin');
+  const adminTbody = document.getElementById('adminTbody');
+
   const TEXT_COLOR = 'rgb(128,128,128)';
   const BUCKET = 'products';
 
@@ -228,7 +285,7 @@
     new FontFace(name, `url(${url})`, options).load().then(f => { document.fonts.add(f); return name; }).catch(e=>{console.warn(e);})
   )).finally(()=>draw());
 
-  let productItems = []; // {name, path, url}
+  let productItems = [];
 
   function getSelItem(){
     return productItems.find(p => p.path === productSel.value) || null;
@@ -254,53 +311,46 @@
   }
   ['input','change'].forEach(evt=>{
     [salesperson,custName,custPhone,dueDate,productSel,previewText,fontFamilySel,directionSel,valignSel,valignOffset]
-  .forEach(el=> el.addEventListener(evt, updateSubmitState));
+ .forEach(el=> el.addEventListener(evt, updateSubmitState));
   });
 
   async function loadProducts(){
-  productSel.innerHTML = '';
-  const listEl = document.getElementById('productList'); // add this container in your HTML
-  if (listEl) listEl.innerHTML = 'Loading…';
-
-  const { data, error } = await sb
+    productSel.innerHTML = '';
+    const { data, error } = await sb
    .from('files')
    .select('storage_key, display_name, created_at')
    .order('created_at', { ascending: false })
    .limit(1000);
 
-  if (error) {
-    console.warn(error);
-    if (listEl) listEl.textContent = 'Failed to load products.';
-    return;
-  }
+    if (error) { console.warn(error); return; }
 
-  productItems = (data || []).map(row => {
-    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(row.storage_key);
-    const name = row.display_name || row.storage_key.split('/').pop();
-    return { name, path: row.storage_key, url: pub.publicUrl };
-  });
+    productItems = (data || []).map(row => {
+      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(row.storage_key);
+      const name = row.display_name || row.storage_key.split('/').pop();
+      return { name, path: row.storage_key, url: pub.publicUrl };
+    });
 
-  renderProducts(productSearch.value);
+    renderProducts(productSearch.value);
 
-  if (productItems[0]) {
-    bg.crossOrigin = 'anonymous';
-    bg.src = productItems[0].url + '?v=' + Date.now();
-    updateSubmitState();
-  }
-}
-
-function renderProducts(filter=''){
-  const q = filter.trim().toLowerCase();
-  const list = productItems.filter(p => p.name.toLowerCase().includes(q));
-  productSel.innerHTML = list.map(p => `<option value="${p.path}">${p.name}</option>`).join('');
-  if (list[0]) {
-    const first = productItems.find(p => p.path === list[0].path);
-    if (first) {
+    if (productItems[0]) {
       bg.crossOrigin = 'anonymous';
-      bg.src = first.url + (first.url.includes('?')? '&' : '?') + 'v=' + Date.now();
+      bg.src = productItems[0].url + '?v=' + Date.now();
+      updateSubmitState();
     }
   }
-}
+
+  function renderProducts(filter=''){
+    const q = filter.trim().toLowerCase();
+    const list = productItems.filter(p => p.name.toLowerCase().includes(q));
+    productSel.innerHTML = list.map(p => `<option value="${p.path}">${p.name}</option>`).join('');
+    if (list[0]) {
+      const first = productItems.find(p => p.path === list[0].path);
+      if (first) {
+        bg.crossOrigin = 'anonymous';
+        bg.src = first.url + (first.url.includes('?')? '&' : '?') + 'v=' + Date.now();
+      }
+    }
+  }
   productSearch.addEventListener('input', ()=>renderProducts(productSearch.value));
   productSel.addEventListener('change', ()=>{
     const item = productItems.find(p=>p.path===productSel.value);
@@ -327,19 +377,16 @@ function renderProducts(filter=''){
     } else {
       ctx.fillStyle = '#ececec'; ctx.fillRect(0,0,canvas.width,canvas.height);
     }
-
     const txt = (previewText.value || '').trim() || 'Your Text';
     const family = fontFamilySel.value || 'Poppins';
     const size = parseInt(fontSize.value,10) || 36;
     const dir = directionSel.value;
     const y = baseY() + parseInt(valignOffset.value,10);
-
     ctx.save();
     ctx.fillStyle = TEXT_COLOR;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `${size}px ${family}`;
-
     if (dir === 'horizontal') {
       ctx.fillText(txt, canvas.width/2, y);
     } else {
@@ -366,16 +413,13 @@ function renderProducts(filter=''){
     const { jsPDF } = window.jspdf;
     const selItem = getSelItem();
     if(!selItem){ alert('Please select a product.'); return; }
-
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageW = pdf.internal.pageSize.getWidth();
     const margin = 40;
     let y = 60;
-
     pdf.setFontSize(16);
     pdf.text('TYESO Indonesia - Order Preview', margin, y);
     y += 24;
-
     pdf.setFontSize(11);
     const lines = [
       `Salesperson: ${ (salesperson.value || '-').trim() } | Due date: ${ dueDate.value || '-' } | Product: ${ selItem.name }`,
@@ -384,12 +428,10 @@ function renderProducts(filter=''){
       `Direction: ${ directionSel.value } | V-Align: ${ valignSel.value } | Offset: ${ parseInt(valignOffset.value,10) || 0 } | Skala : 1:5`
     ];
     lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
-
     const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
     const imgW = pageW - margin*2;
     const imgH = imgW * (canvas.height / canvas.width);
     pdf.addImage(dataUrl, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
-
     const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
     const ts = new Date().toISOString().replace(/[:.]/g,'-');
     pdf.save(`TYESO-order-${base}-${ts}.pdf`);
@@ -405,12 +447,10 @@ function renderProducts(filter=''){
     const { data: { user } } = await sb.auth.getUser();
     if(!user){ alert('Please sign in.'); return; }
     const selItem = getSelItem();
-
     const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
     const ts = new Date().toISOString().replace(/[:.]/g,'-');
     const filename = `${base}-${ts}.png`;
     if (fnameEl) fnameEl.textContent = filename;
-
     const row = {
       user_id: user.id,
       product_path: selItem.path,
@@ -430,7 +470,6 @@ function renderProducts(filter=''){
       canvas_h: canvas.height,
       filename
     };
-
     const { error } = await sb.from('orders').insert(row);
     if(error){ alert('Submit failed: ' + error.message); return; }
     alert('Thank you for your submission!');
@@ -442,203 +481,191 @@ function renderProducts(filter=''){
     try { return new Date(d).toLocaleString(); } catch { return d || '-'; }
   }
 
-  const PREVIEW_SCALE = 5; // preview is 1:5
-  
-  // --- text-only PDF helpers (vector, horizontal) ---
-const FONT_FILE_MAP = {
-  Poppins: 'fonts/Poppins-Black.ttf',
-  Roboto: 'fonts/Roboto-Black.ttf',
-  PlayfairDisplay: 'fonts/PlayfairDisplay-Black.ttf',
-  AboveTheBeyond: 'fonts/Above-the-beyond-script.ttf',
-  AdleryProSwash: 'fonts/AdleryProSwash.ttf',
-  AlexBrush: 'fonts/AlexBrush-Regular.ttf',
-  BerkshireSwash: 'fonts/BerkshireSwash-Regular.ttf',
-  GloriaHallelujah: 'fonts/GloriaHallelujah.ttf',
-  HughIsLife: 'fonts/Hugh-is-Life.ttf',
-  LifelogoEasy: 'fonts/Lifelogo-Easy.ttf',
-  MoonTime: 'fonts/MoonTime-Regular.ttf',
-  RumblebraveScript: 'fonts/Rumble-brave-script-Italic.ttf',
-  MagnoliaScript: 'fonts/MagnoliaScript.ttf',
-  Monarda: 'fonts/Monarda.ttf',
-  BukhariScript: 'fonts/Bukhari-Script.ttf',
-  NexaScript: 'fonts/Nexa-Script-Heavy.ttf',
-  WhiteApricot: 'fonts/WhiteApricot.ttf',
-  AbrazoScript: 'fonts/Abrazo-Script-Bold.ttf',
-  AutumninNovember: 'fonts/Autumn-in-November-Regular.ttf',
-  OceanSunshine: 'fonts/Ocean-Sunshine-Regular.ttf',
-  Playball: 'fonts/Playball-Regular.ttf',
-  Blacksword: 'fonts/blacksword.ttf',
-  Domyouji: 'fonts/Domyouji-Regular.ttf',
-  BelweCondensed: 'fonts/Belwe.ttf'
-};
-  
-  const fontSelect = document.getElementById('fontFamily');
-fontSelect.innerHTML = Object.keys(FONT_FILE_MAP)
-  .sort((a,b)=>a.localeCompare(b))
-  .map(k=>`<option value="${k}">${k}</option>`).join('');
-  
-async function ensurePdfFont(pdf, family){
-  const file = FONT_FILE_MAP[family];
-  if (!file) { pdf.setFont('helvetica','normal'); return false; }
-  try {
-    const res = await fetch(file, { cache: 'no-store' });
-    if (!res.ok) throw new Error('font fetch failed');
-    const buf = await res.arrayBuffer();
-    let binary = ''; const bytes = new Uint8Array(buf);
-    for (let i=0;i<bytes.length;i++) binary += String.fromCharCode(bytes[i]);
-    const b64 = btoa(binary);
-    const vfsName = file.split('/').pop();
-    pdf.addFileToVFS(vfsName, b64);
-    pdf.addFont(vfsName, family, 'normal');
-    pdf.setFont(family,'normal');
-    return true;
-  } catch (e) {
-    console.warn('Font embed failed, using Helvetica:', family, e);
-    pdf.setFont('helvetica','normal');
-    return false;
-  }
-}
+  const PREVIEW_SCALE = 5;
 
-async function makeTextOnlyPdfUrl(r){
-  const { jsPDF } = window.jspdf;
-  // A3 landscape (≈ 1190.55 x 841.89 pt), much wider
-  const pdf = new jsPDF({ unit: 'pt', format: 'a3', orientation: 'l', hotfixes: ['px_scaling'] });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-
-  const parseRgb = (rgbStr) => {
-    const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/i.exec(rgbStr || '');
-    return m? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [128,128,128];
+  const FONT_FILE_MAP = {
+    Poppins: 'fonts/Poppins-Black.ttf',
+    Roboto: 'fonts/Roboto-Black.ttf',
+    PlayfairDisplay: 'fonts/PlayfairDisplay-Black.ttf',
+    AboveTheBeyond: 'fonts/Above-the-beyond-script.ttf',
+    AdleryProSwash: 'fonts/AdleryProSwash.ttf',
+    AlexBrush: 'fonts/AlexBrush-Regular.ttf',
+    BerkshireSwash: 'fonts/BerkshireSwash-Regular.ttf',
+    GloriaHallelujah: 'fonts/GloriaHallelujah.ttf',
+    HughIsLife: 'fonts/Hugh-is-Life.ttf',
+    LifelogoEasy: 'fonts/Lifelogo-Easy.ttf',
+    MoonTime: 'fonts/MoonTime-Regular.ttf',
+    RumblebraveScript: 'fonts/Rumble-brave-script-Italic.ttf',
+    MagnoliaScript: 'fonts/MagnoliaScript.ttf',
+    Monarda: 'fonts/Monarda.ttf',
+    BukhariScript: 'fonts/Bukhari-Script.ttf',
+    NexaScript: 'fonts/Nexa-Script-Heavy.ttf',
+    WhiteApricot: 'fonts/WhiteApricot.ttf',
+    AbrazoScript: 'fonts/Abrazo-Script-Bold.ttf',
+    AutumninNovember: 'fonts/Autumn-in-November-Regular.ttf',
+    OceanSunshine: 'fonts/Ocean-Sunshine-Regular.ttf',
+    Playball: 'fonts/Playball-Regular.ttf',
+    Blacksword: 'fonts/blacksword.ttf',
+    Domyouji: 'fonts/Domyouji-Regular.ttf',
+    BelweCondensed: 'fonts/Belwe.ttf'
   };
 
-  await ensurePdfFont(pdf, r.font_family || 'Poppins');
+  const fontSelect = document.getElementById('fontFamily');
+  fontSelect.innerHTML = Object.keys(FONT_FILE_MAP)
+ .sort((a,b)=>a.localeCompare(b))
+ .map(k=>`<option value="${k}">${k}</option>`).join('');
 
-  const previewSizePt = Math.max(8, Math.min(300, Number(r.font_size) || 36));
-  const fontSizePt = previewSizePt * PREVIEW_SCALE;
-  pdf.setFontSize(fontSizePt);
+  async function ensurePdfFont(pdf, family){
+    const file = FONT_FILE_MAP[family];
+    if (!file) { pdf.setFont('helvetica','normal'); return false; }
+    try {
+      const res = await fetch(file, { cache: 'no-store' });
+      if (!res.ok) throw new Error('font fetch failed');
+      const buf = await res.arrayBuffer();
+      let binary = ''; const bytes = new Uint8Array(buf);
+      for (let i=0;i<bytes.length;i++) binary += String.fromCharCode(bytes[i]);
+      const b64 = btoa(binary);
+      const vfsName = file.split('/').pop();
+      pdf.addFileToVFS(vfsName, b64);
+      pdf.addFont(vfsName, family, 'normal');
+      pdf.setFont(family,'normal');
+      return true;
+    } catch (e) {
+      console.warn('Font embed failed, using Helvetica:', family, e);
+      pdf.setFont('helvetica','normal');
+      return false;
+    }
+  }
 
-  const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
-  pdf.setTextColor(cr,cg,cb);
+  async function makeTextOnlyPdfUrl(r){
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'pt', format: 'a3', orientation: 'l', hotfixes: ['px_scaling'] });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const parseRgb = (rgbStr) => {
+      const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/i.exec(rgbStr || '');
+      return m? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [128,128,128];
+    };
+    await ensurePdfFont(pdf, r.font_family || 'Poppins');
+    const previewSizePt = Math.max(8, Math.min(300, Number(r.font_size) || 36));
+    const fontSizePt = previewSizePt * PREVIEW_SCALE;
+    pdf.setFontSize(fontSizePt);
+    const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
+    pdf.setTextColor(cr,cg,cb);
+    const text = (r.preview_text || 'Your Text').trim();
+    const maxWidth = pageW * 0.9;
+    let lines;
+    try { lines = pdf.splitTextToSize(text, maxWidth); }
+    catch { pdf.setFont('helvetica','normal'); lines = pdf.splitTextToSize(text, maxWidth); }
+    const lineHeight = fontSizePt * 1.2;
+    const blockHeight = lines.length * lineHeight;
+    let startY = (pageH - blockHeight) / 2 + lineHeight * 0.35;
+    lines.forEach((line, i) => {
+      const w = pdf.getTextWidth(line);
+      const x = (pageW - w) / 2;
+      pdf.text(line, x, startY + i * lineHeight);
+    });
+    return pdf.output('bloburl');
+  }
 
-  const text = (r.preview_text || 'Your Text').trim();
-  const maxWidth = pageW * 0.9;
+async function loadRecent(){
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
+    recentList.textContent = 'Loading…';
+    const { data, error } = await sb
+     .from('orders')
+     .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename, text_color, product_path')
+     .eq('user_id', user.id)
+     .order('created_at', { ascending: false })
+     .limit(3);
+    if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
+    if(!data ||!data.length){ recentList.textContent = 'No submissions yet.'; return; }
 
-  let lines;
-  try { lines = pdf.splitTextToSize(text, maxWidth); }
-  catch { pdf.setFont('helvetica','normal'); lines = pdf.splitTextToSize(text, maxWidth); }
+    recentList.innerHTML = data.map(r => `
+      <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px" data-id="${r.id}">
+        <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
+        <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
+        <div class="muted">
+          ${r.font_family || 'Poppins'} ${r.font_size || ''} • ${r.direction} • ${r.valign} (${r.valign_offset || 0})
+          - Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
+        </div>
+        <div class="muted">File: ${r.filename || '-'}</div>
 
-  const lineHeight = fontSizePt * 1.2;
-  const blockHeight = lines.length * lineHeight;
-  let startY = (pageH - blockHeight) / 2 + lineHeight * 0.35;
-  lines.forEach((line, i) => {
-    const w = pdf.getTextWidth(line);
-    const x = (pageW - w) / 2;
-    pdf.text(line, x, startY + i * lineHeight);
-  });
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <button class="btn secondary dl-png" style="width:auto;padding:6px 10px" title="Save PNG">🖼️ PNG</button>
+          <button class="btn secondary dl-pdf" style="width:auto;padding:6px 10px" title="Download PDF">📄 PDF</button>
+        </div>
 
-  return pdf.output('bloburl');
-}
-  async function loadRecent(){
-  const { data: { user } } = await sb.auth.getUser();
-  if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
-  recentList.textContent = 'Loading…';
-  const { data, error } = await sb
-  .from('orders')
-  .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename, text_color, product_path')
-  .eq('user_id', user.id)
-  .order('created_at', { ascending: false })
-  .limit(3);
-  if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
-  if(!data ||!data.length){ recentList.textContent = 'No submissions yet.'; return; }
-
-  recentList.innerHTML = data.map(r => `
-    <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px" data-id="${r.id}">
-      <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
-      <div><b>${r.product_name || '-'}</b> — “${(r.preview_text||'').replace(/</g,'&lt;')}”</div>
-      <div class="muted">
-        ${r.font_family || 'Poppins'} ${r.font_size || ''} • ${r.direction} • ${r.valign} (${r.valign_offset || 0})
-        • Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
-      </div>
-      <div class="muted">File: ${r.filename || '-'}</div>
-
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-        <button class="btn secondary dl-png" style="width:auto;padding:6px 10px" title="Save PNG">🖼️ PNG</button>
-        <button class="btn secondary dl-pdf" style="width:auto;padding:6px 10px" title="Download PDF">📄 PDF</button>
-      </div>
-
-      <div style="margin-top:8px">
-        <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
-        <div class="inline">
-          <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
-          <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
+        <div style="margin-top:8px">
+          <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
+          <div class="inline">
+            <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
+            <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
 
-  const cards = Array.from(recentList.querySelectorAll('[data-id]'));
-  cards.forEach(async (card, i) => {
-    const r = data[i];
+    const cards = Array.from(recentList.querySelectorAll('[data-id]'));
+    cards.forEach(async (card, i) => {
+      const r = data[i];
 
-    // PNG download (re-render from product image + text)
-    card.querySelector('.dl-png').addEventListener('click', async () => {
-      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
-        const x = c.getContext('2d');
-        const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
-        const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
-        const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
-        x.drawImage(img, ox, oy, w, h);
-        const size = r.font_size || 36;
-        const y = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
-        x.save();
-        x.fillStyle = r.text_color || TEXT_COLOR;
-        x.textAlign = 'center'; x.textBaseline = 'middle';
-        x.font = `${size}px ${r.font_family || 'Poppins'}`;
-        if (r.direction === 'horizontal') {
-          x.fillText(r.preview_text || 'Your Text', c.width/2, y);
-        } else {
-          x.translate(c.width/2, y);
-          x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2);
-          x.fillText(r.preview_text || 'Your Text', 0, 0);
-        }
-        x.restore();
-        const a = document.createElement('a');
-        a.download = r.filename || 'preview.png';
-        a.href = c.toDataURL('image/png');
-        a.click();
-      };
-      img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now();
+      card.querySelector('.dl-png').addEventListener('click', async () => {
+        const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
+          const x = c.getContext('2d');
+          const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
+          const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
+          const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
+          x.drawImage(img, ox, oy, w, h);
+          const size = r.font_size || 36;
+          const y = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
+          x.save();
+          x.fillStyle = r.text_color || TEXT_COLOR;
+          x.textAlign = 'center'; x.textBaseline = 'middle';
+          x.font = `${size}px ${r.font_family || 'Poppins'}`;
+          if (r.direction === 'horizontal') {
+            x.fillText(r.preview_text || 'Your Text', c.width/2, y);
+          } else {
+            x.translate(c.width/2, y);
+            x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2);
+            x.fillText(r.preview_text || 'Your Text', 0, 0);
+          }
+          x.restore();
+          const a = document.createElement('a');
+          a.download = r.filename || 'preview.png';
+          a.href = c.toDataURL('image/png');
+          a.click();
+        };
+        img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now();
+      });
+
+      card.querySelector('.dl-pdf').addEventListener('click', async () => {
+        try {
+          const url = await makeTextOnlyPdfUrl(r);
+          const a = document.createElement('a');
+          a.href = url; a.target = '_blank'; a.rel = 'noopener';
+          a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf';
+          a.click();
+        } catch(e){ console.warn(e); alert('PDF failed'); }
+      });
+
+      const input = card.querySelector('.textonly-link');
+      const btn = card.querySelector('.copy-link');
+      try { input.value = await makeTextOnlyPdfUrl(r); }
+      catch(e){ console.warn(e); input.placeholder = 'Could not generate link'; btn.disabled = true; }
+      btn.addEventListener('click', async () => {
+        if (!input.value) return;
+        try { await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=> btn.textContent = 'Copy link', 1200); }
+        catch { input.select(); document.execCommand('copy'); }
+      });
     });
+  }
 
-    // PDF (text-only vector)
-    card.querySelector('.dl-pdf').addEventListener('click', async () => {
-      try {
-        const url = await makeTextOnlyPdfUrl(r);
-        const a = document.createElement('a');
-        a.href = url; a.target = '_blank'; a.rel = 'noopener';
-        a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf';
-        a.click();
-      } catch(e){ console.warn(e); alert('PDF failed'); }
-    });
-
-    // Link field
-    const input = card.querySelector('.textonly-link');
-    const btn = card.querySelector('.copy-link');
-    try { input.value = await makeTextOnlyPdfUrl(r); }
-    catch(e){ console.warn(e); input.placeholder = 'Could not generate link'; btn.disabled = true; }
-    btn.addEventListener('click', async () => {
-      if (!input.value) return;
-      try { await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=> btn.textContent = 'Copy link', 1200); }
-      catch { input.select(); document.execCommand('copy'); }
-    });
-  });
-}
-        
   function clearForm(){
     salesperson.value = '';
     custName.value = '';
@@ -664,67 +691,190 @@ async function makeTextOnlyPdfUrl(r){
     return!!data?.is_admin;
   }
 
+  function showOnly(section){
+    [authCard, appCard, recentCard, adminHome, adminDataCard, adminCard].forEach(el=>el.classList.add('hidden'));
+    section.classList.remove('hidden');
+  }
+
+  goUpload?.addEventListener('click', ()=>{ showOnly(adminDataCard); loadAdminTable(); });
+  goGenerator?.addEventListener('click', ()=>{ showOnly(appCard); recentCard.classList.remove('hidden'); });
+  backToAdminHome?.addEventListener('click', ()=>{ showOnly(adminHome); });
+  openGeneratorFromAdmin?.addEventListener('click', ()=>{ showOnly(appCard); recentCard.classList.remove('hidden'); });
+
+  async function loadAdminTable(){
+    adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">Loading…</td></tr>`;
+    const { data, error } = await sb
+     .from('orders')
+     .select('id, created_at, salesperson, customer_name, customer_phone, due_date, product_name, product_path, preview_text, font_family, font_size, direction, valign, valign_offset, text_color, canvas_w, canvas_h, filename')
+     .order('created_at', { ascending: false })
+     .limit(500);
+    if (error){
+      adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#c00">Failed: ${error.message}</td></tr>`;
+      return;
+    }
+    if (!data ||!data.length){
+      adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">No submissions yet.</td></tr>`;
+      return;
+    }
+
+    adminTbody.innerHTML = data.map(r => `
+      <tr style="border-bottom:1px solid #f0f0f0">
+        <td style="padding:8px;white-space:nowrap">${fmtDate(r.created_at)}</td>
+        <td style="padding:8px">${(r.salesperson||'-').replace(/</g,'&lt;')}</td>
+        <td style="padding:8px">${(r.customer_name||'-').replace(/</g,'&lt;')}</td>
+        <td style="padding:8px;white-space:nowrap">${r.due_date||'-'}</td>
+        <td style="padding:8px">${(r.product_name||'-').replace(/</g,'&lt;')}</td>
+        <td style="padding:8px"><button class="btn secondary dl-png" data-id="${r.id}" style="padding:6px 10px;width:auto">PNG</button></td>
+        <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
+        <td style="padding:8px">
+          <div class="inline">
+            <input class="textonly-link" data-id="${r.id}" type="text" readonly placeholder="Generating…" style="font-size:12px;width:220px">
+            <button class="btn secondary copy-link" data-id="${r.id}" style="width:auto;padding:6px 10px">Copy</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    adminTbody.querySelectorAll('.dl-png').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const r = data.find(x=>String(x.id)===btn.dataset.id);
+        if(!r) return;
+        const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
+        const img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload = ()=>{
+          const c = document.createElement('canvas');
+          c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
+          const x = c.getContext('2d');
+          const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
+          const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
+          const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
+          x.drawImage(img, ox, oy, w, h);
+          const size = r.font_size || 36;
+          const y = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
+          x.save(); x.fillStyle = r.text_color || TEXT_COLOR; x.textAlign = 'center'; x.textBaseline = 'middle';
+          x.font = `${size}px ${r.font_family || 'Poppins'}`;
+          if (r.direction === 'horizontal') x.fillText(r.preview_text || 'Your Text', c.width/2, y);
+          else { x.translate(c.width/2, y); x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2); x.fillText(r.preview_text || 'Your Text', 0, 0); }
+          x.restore();
+          const a = document.createElement('a'); a.download = r.filename || 'preview.png'; a.href = c.toDataURL('image/png'); a.click();
+        };
+        img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now();
+      });
+    });
+
+    adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const r = data.find(x=>String(x.id)===btn.dataset.id);
+        if(!r) return;
+        try {
+          const url = await makeTextOnlyPdfUrl(r);
+          const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel='noopener';
+          a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf'; a.click();
+        } catch(e){ alert('PDF failed'); console.warn(e); }
+      });
+    });
+
+    adminTbody.querySelectorAll('.textonly-link').forEach(async (input)=>{
+      const r = data.find(x=>String(x.id)===input.dataset.id);
+      if(!r) return;
+      try { input.value = await makeTextOnlyPdfUrl(r); } catch { input.placeholder = 'Could not generate'; }
+    });
+    adminTbody.querySelectorAll('.copy-link').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const input = adminTbody.querySelector(`.textonly-link[data-id="${btn.dataset.id}"]`);
+        if (!input?.value) return;
+        try { await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy',1200); }
+        catch { input.select(); document.execCommand('copy'); }
+      });
+    });
+  }
+
   async function refresh(){
     const { data: { user } } = await sb.auth.getUser();
     if(user){
       authCard.classList.add('hidden');
-      appCard.classList.remove('hidden');
-      recentCard.classList.remove('hidden');
-      userEmailSpan.textContent = user.email || '';
-      await loadProducts();
-      if (await isAdmin(user.id)) {
-        adminCard.classList.remove('hidden');
+      const admin = await isAdmin(user.id);
+      if (admin){
+        [appCard, recentCard, adminDataCard, adminCard].forEach(el=>el.classList.add('hidden'));
+        adminHome.classList.remove('hidden');
+        userEmailSpan.textContent = user.email || '';
+        await loadProducts();
       } else {
+        adminHome.classList.add('hidden');
+        adminDataCard.classList.add('hidden');
         adminCard.classList.add('hidden');
+        appCard.classList.remove('hidden');
+        recentCard.classList.remove('hidden');
+        userEmailSpan.textContent = user.email || '';
+        await loadProducts();
+        await loadRecent();
       }
       draw();
-      await loadRecent();
-    }else{
+    } else {
+      [appCard, adminHome, adminDataCard, adminCard, recentCard].forEach(el=>el.classList.add('hidden'));
       authCard.classList.remove('hidden');
-      appCard.classList.add('hidden');
-      adminCard.classList.add('hidden');
-      recentCard.classList.add('hidden');
     }
   }
 
-  signInBtn.addEventListener('click', async ()=>{ signInBtn.disabled=true; const { error } = await sb.auth.signInWithPassword({ email: emailInput.value.trim(), password: passwordInput.value }); if(error) alert(error.message); signInBtn.disabled=false; refresh(); });
-  signUpBtn.addEventListener('click', async ()=>{ signUpBtn.disabled=true; const { error } = await sb.auth.signUp({ email: emailInput.value.trim(), password: passwordInput.value }); if(error) alert(error.message); else alert('Check your email for confirmation (if enabled).'); signUpBtn.disabled=false; refresh(); });
+  signInBtn.addEventListener('click', async ()=>{
+    signInBtn.disabled=true;
+    const { error } = await sb.auth.signInWithPassword({ email: emailInput.value.trim(), password: passwordInput.value });
+    if(error) alert(error.message);
+    signInBtn.disabled=false;
+    refresh();
+  });
+
+  signUpBtn.addEventListener('click', async ()=>{
+    signUpBtn.disabled = true;
+    const { error } = await sb.auth.signUp({
+      email: emailInput.value.trim(),
+      password: passwordInput.value,
+      options: {
+        emailRedirectTo: 'https://hendro2897-hash.github.io/preview-app/'
+      }
+    });
+    if (error) alert(error.message);
+    else alert('Check your email for confirmation link.');
+    signUpBtn.disabled = false;
+    refresh();
+  });
+
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
 
   uploadBtn.addEventListener('click', async () => {
-  const files = fileInput.files;
-  if (!files || !files.length) return;
+    const files = fileInput.files;
+    if (!files ||!files.length) return;
 
-  adminStatus.textContent = 'Uploading…';
+    adminStatus.textContent = 'Uploading…';
 
-  for (const f of files) {
-    const ext = (f.name.split('.').pop() || 'bin').toLowerCase();
-    const key = `uploads/${crypto.randomUUID()}.${ext}`; // hidden storage key
+    for (const f of files) {
+      const ext = (f.name.split('.').pop() || 'bin').toLowerCase();
+      const key = `uploads/${crypto.randomUUID()}.${ext}`;
 
-    const { error: upErr } = await sb.storage.from(BUCKET).upload(key, f, { upsert: false });
-    if (upErr) {
-      console.error(upErr);
-      adminStatus.textContent = 'Upload failed: ' + upErr.message;
-      return;
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(key, f, { upsert: false });
+      if (upErr) {
+        console.error(upErr);
+        adminStatus.textContent = 'Upload failed: ' + upErr.message;
+        return;
+      }
+
+      const { error: dbErr } = await sb.from('files').insert({
+        storage_key: key,
+        display_name: f.name
+      });
+      if (dbErr) {
+        console.error(dbErr);
+        adminStatus.textContent = 'DB insert failed: ' + dbErr.message;
+        return;
+      }
     }
 
-    const { error: dbErr } = await sb.from('files').insert({
-      storage_key: key,       // hidden
-      display_name: f.name    // what users will see
-    });
-    if (dbErr) {
-      console.error(dbErr);
-      adminStatus.textContent = 'DB insert failed: ' + dbErr.message;
-      return;
-    }
-  }
+    adminStatus.textContent = 'Done.';
+    fileInput.value = '';
+    await loadProducts();
+  });
 
-  adminStatus.textContent = 'Done.';
-  fileInput.value = '';
-  await loadProducts();
-});
-
-refreshProducts.addEventListener('click', loadProducts);
+  refreshProducts.addEventListener('click', loadProducts);
 
   refresh();
 </script>
