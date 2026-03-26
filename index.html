@@ -116,8 +116,7 @@
   </div>
 </div>
 
-      const backToAdminHomeFromApp = document.getElementById('backToAdminHomeFromApp');
-      backToAdminHomeFromApp?.addEventListener('click', ()=>{ showOnly(adminHome); });
+
       
       <div class="grid" style="margin-top:8px">
         <div>
@@ -255,7 +254,8 @@
   const backToAdminHome = document.getElementById('backToAdminHome');
   const openGeneratorFromAdmin = document.getElementById('openGeneratorFromAdmin');
   const adminTbody = document.getElementById('adminTbody');
-
+  const backToAdminHomeFromApp = document.getElementById('backToAdminHomeFromApp');
+  
   const TEXT_COLOR = 'rgb(128,128,128)';
   const BUCKET = 'products';
 
@@ -706,7 +706,8 @@ async function loadRecent(){
   goGenerator?.addEventListener('click', ()=>{ showOnly(appCard); recentCard.classList.remove('hidden'); });
   backToAdminHome?.addEventListener('click', ()=>{ showOnly(adminHome); });
   openGeneratorFromAdmin?.addEventListener('click', ()=>{ showOnly(appCard); recentCard.classList.remove('hidden'); });
-
+  backToAdminHomeFromApp?.addEventListener('click', ()=>{ showOnly(adminHome); });
+  
   async function loadAdminTable(){
     adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">Loading…</td></tr>`;
     const { data, error } = await sb
