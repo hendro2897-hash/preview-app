@@ -75,6 +75,12 @@
       <div class="hint" id="adminStatus"></div>
 
       <h3 style="margin:16px 0 6px">All submissions</h3>
+      <div class="row" style="gap:8px;margin:6px 0 8px">
+  <input id="fltSales" type="text" placeholder="Filter salesperson…" />
+  <input id="fltCust" type="text" placeholder="Filter customer…" />
+  <input id="fltProd" type="text" placeholder="Filter product…" />
+  <button id="fltClear" class="btn secondary" style="width:auto;padding:8px 12px">Clear</button>
+</div>
       <div class="hint">Latest first. Use the action buttons to export.</div>
       <div style="overflow:auto;margin-top:8px">
         <table id="adminTable" style="width:100%;border-collapse:collapse;font-size:14px">
@@ -768,93 +774,122 @@ openGeneratorFromAdmin?.addEventListener('click', async ()=>{
   await loadRecent();
 });
   
-  async function loadAdminTable(){
-    adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">Loading…</td></tr>`;
-    const { data, error } = await sb
-     .from('orders')
-     .select('id, created_at, salesperson, customer_name, customer_phone, due_date, product_name, product_path, preview_text, font_family, font_size, direction, valign, valign_offset, text_color, canvas_w, canvas_h, filename')
-     .order('created_at', { ascending: false })
-     .limit(500);
-    if (error){
-      adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#c00">Failed: ${error.message}</td></tr>`;
-      return;
-    }
-    if (!data ||!data.length){
-      adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">No submissions yet.</td></tr>`;
-      return;
-    }
+  let adminRows = []; // cache for filtering
 
-    adminTbody.innerHTML = data.map(r => `
-      <tr style="border-bottom:1px solid #f0f0f0">
-        <td style="padding:8px;white-space:nowrap">${fmtDate(r.created_at)}</td>
-        <td style="padding:8px">${(r.salesperson||'-').replace(/</g,'&lt;')}</td>
-        <td style="padding:8px">${(r.customer_name||'-').replace(/</g,'&lt;')}</td>
-        <td style="padding:8px;white-space:nowrap">${r.due_date||'-'}</td>
-        <td style="padding:8px">${(r.product_name||'-').replace(/\.[^.]+$/, '').replace(/</g,'&lt;')}</td>
-        <td style="padding:8px"><button class="btn secondary dl-png" data-id="${r.id}" style="padding:6px 10px;width:auto">PNG</button></td>
-        <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
-        <td style="padding:8px">
-          <div class="inline">
-            <input class="textonly-link" data-id="${r.id}" type="text" readonly placeholder="Generating…" style="font-size:12px;width:220px">
-            <button class="btn secondary copy-link" data-id="${r.id}" style="width:auto;padding:6px 10px">Copy</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-
-    adminTbody.querySelectorAll('.dl-png').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const r = data.find(x=>String(x.id)===btn.dataset.id);
-        if(!r) return;
-        const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
-        const img = new Image(); img.crossOrigin = 'anonymous';
-        img.onload = ()=>{
-          const c = document.createElement('canvas');
-          c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
-          const x = c.getContext('2d');
-          const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
-          const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
-          const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
-          x.drawImage(img, ox, oy, w, h);
-          const size = r.font_size || 36;
-          const y = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
-          x.save(); x.fillStyle = r.text_color || TEXT_COLOR; x.textAlign = 'center'; x.textBaseline = 'middle';
-          x.font = `${size}px ${r.font_family || 'Poppins'}`;
-          if (r.direction === 'horizontal') x.fillText(r.preview_text || 'Your Text', c.width/2, y);
-          else { x.translate(c.width/2, y); x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2); x.fillText(r.preview_text || 'Your Text', 0, 0); }
-          x.restore();
-          const a = document.createElement('a'); a.download = r.filename || 'preview.png'; a.href = c.toDataURL('image/png'); a.click();
-        };
-        img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now();
-      });
-    });
-
-    adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
-  btn.addEventListener('click', async ()=>{
-    const r = data.find(x=>String(x.id)===btn.dataset.id);
-    if(!r) return;
-    try {
-      const url = await makeOrderPdf(r);
-      const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel='noopener';
-      a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf'; a.click();
-    } catch(e){ alert('PDF failed'); console.warn(e); }
-  });
-});
-
-    adminTbody.querySelectorAll('.textonly-link').forEach(async (input)=>{
-      const r = data.find(x=>String(x.id)===input.dataset.id);
-      if(!r) return;
-      try { input.value = await makeTextOnlyPdfUrl(r); } catch { input.placeholder = 'Could not generate'; }
-    });
-    adminTbody.querySelectorAll('.copy-link').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const input = adminTbody.querySelector(`.textonly-link[data-id="${btn.dataset.id}"]`);
-        if (!input?.value) return;
-        try { await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy',1200); }
-        catch { input.select(); document.execCommand('copy'); }
-      });
-    });
+function renderAdminRows(rows){
+  if (!rows || !rows.length){
+    adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">No submissions yet.</td></tr>`;
+    return;
   }
+  adminTbody.innerHTML = rows.map(r => `
+    <tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:8px;white-space:nowrap">${fmtDate(r.created_at)}</td>
+      <td style="padding:8px">${(r.salesperson||'-').replace(/</g,'&lt;')}</td>
+      <td style="padding:8px">${(r.customer_name||'-').replace(/</g,'&lt;')}</td>
+      <td style="padding:8px;white-space:nowrap">${r.due_date||'-'}</td>
+      <td style="padding:8px">${(r.product_name||'-').replace(/\.[^.]+$/, '').replace(/</g,'&lt;')}</td>
+      <td style="padding:8px"><button class="btn secondary dl-png" data-id="${r.id}" style="padding:6px 10px;width:auto">PNG</button></td>
+      <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
+      <td style="padding:8px">
+        <div class="inline">
+          <input class="textonly-link" data-id="${r.id}" type="text" readonly placeholder="Generating…" style="font-size:12px;width:220px">
+          <button class="btn secondary copy-link" data-id="${r.id}" style="width:auto;padding:6px 10px">Copy</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // wire PNG
+  adminTbody.querySelectorAll('.dl-png').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
+      if(!r) return;
+      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = ()=>{
+        const c = document.createElement('canvas');
+        c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
+        const x = c.getContext('2d');
+        const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
+        const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
+        const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
+        x.drawImage(img, ox, oy, w, h);
+        const size = r.font_size || 36;
+        const y = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
+        x.save(); x.fillStyle = r.text_color || TEXT_COLOR; x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.font = `${size}px ${r.font_family || 'Poppins'}`;
+        if (r.direction === 'horizontal') x.fillText(r.preview_text || 'Your Text', c.width/2, y);
+        else { x.translate(c.width/2, y); x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2); x.fillText(r.preview_text || 'Your Text', 0, 0); }
+        x.restore();
+        const a = document.createElement('a'); a.download = r.filename || 'preview.png'; a.href = c.toDataURL('image/png'); a.click();
+      };
+      img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now();
+    });
+  });
+
+  // wire PDF
+  adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
+      if(!r) return;
+      try {
+        const url = await makeOrderPdf(r);
+        const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel='noopener';
+        a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf'; a.click();
+      } catch(e){ alert('PDF failed'); console.warn(e); }
+    });
+  });
+
+  // text-only links
+  adminTbody.querySelectorAll('.textonly-link').forEach(async (input)=>{
+    const r = adminRows.find(x=>String(x.id)===input.dataset.id);
+    if(!r) return;
+    try { input.value = await makeTextOnlyPdfUrl(r); } catch { input.placeholder = 'Could not generate'; }
+  });
+  adminTbody.querySelectorAll('.copy-link').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const input = adminTbody.querySelector(`.textonly-link[data-id="${btn.dataset.id}"]`);
+      if (!input?.value) return;
+      try { await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy',1200); }
+      catch { input.select(); document.execCommand('copy'); }
+    });
+  });
+}
+
+function applyAdminFilters(){
+  const s = (document.getElementById('fltSales')?.value || '').trim().toLowerCase();
+  const c = (document.getElementById('fltCust')?.value || '').trim().toLowerCase();
+  const p = (document.getElementById('fltProd')?.value || '').trim().toLowerCase();
+  const filtered = adminRows.filter(r =>
+    (!s || (r.salesperson||'').toLowerCase().includes(s)) &&
+    (!c || (r.customer_name||'').toLowerCase().includes(c)) &&
+    (!p || (r.product_name||'').toLowerCase().includes(p))
+  );
+  renderAdminRows(filtered);
+}
+
+async function loadAdminTable(){
+  adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">Loading…</td></tr>`;
+  const { data, error } = await sb
+   .from('orders')
+   .select('id, created_at, salesperson, customer_name, customer_phone, due_date, product_name, product_path, preview_text, font_family, font_size, direction, valign, valign_offset, text_color, canvas_w, canvas_h, filename')
+   .order('created_at', { ascending: false })
+   .limit(1000);
+  if (error){
+    adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#c00">Failed: ${error.message}</td></tr>`;
+    return;
+  }
+  adminRows = data || [];
+  renderAdminRows(adminRows);
+
+  // wire filter inputs (once)
+  const sales = document.getElementById('fltSales');
+  const cust  = document.getElementById('fltCust');
+  const prod  = document.getElementById('fltProd');
+  const clr   = document.getElementById('fltClear');
+  [sales,cust,prod].forEach(el=> el && el.addEventListener('input', applyAdminFilters));
+  clr && clr.addEventListener('click', ()=>{ if(sales) sales.value=''; if(cust) cust.value=''; if(prod) prod.value=''; applyAdminFilters(); });
+}
 
   async function refresh(){
   const { data: { user } } = await sb.auth.getUser();
