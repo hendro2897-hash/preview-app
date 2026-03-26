@@ -109,10 +109,16 @@
 
     <div class="card hidden" id="appCard">
       <div class="row" style="align-items:center;justify-content:space-between">
-        <div>Logged in as <b id="userEmail"></b></div>
-        <button id="signout" class="btn secondary" style="width:auto;padding:8px 12px">Sign out</button>
-      </div>
+  <div>Logged in as <b id="userEmail"></b></div>
+  <div class="row" style="gap:8px;justify-content:flex-end">
+    <button id="backToAdminHomeFromApp" class="btn secondary hidden" style="width:auto;padding:8px 12px">Back</button>
+    <button id="signout" class="btn secondary" style="width:auto;padding:8px 12px">Sign out</button>
+  </div>
+</div>
 
+      const backToAdminHomeFromApp = document.getElementById('backToAdminHomeFromApp');
+      backToAdminHomeFromApp?.addEventListener('click', ()=>{ showOnly(adminHome); });
+      
       <div class="grid" style="margin-top:8px">
         <div>
           <label>Salesperson name</label>
@@ -790,31 +796,34 @@ async function loadRecent(){
   }
 
   async function refresh(){
-    const { data: { user } } = await sb.auth.getUser();
-    if(user){
-      authCard.classList.add('hidden');
-      const admin = await isAdmin(user.id);
-      if (admin){
-        [appCard, recentCard, adminDataCard, adminCard].forEach(el=>el.classList.add('hidden'));
-        adminHome.classList.remove('hidden');
-        userEmailSpan.textContent = user.email || '';
-        await loadProducts();
-      } else {
-        adminHome.classList.add('hidden');
-        adminDataCard.classList.add('hidden');
-        adminCard.classList.add('hidden');
-        appCard.classList.remove('hidden');
-        recentCard.classList.remove('hidden');
-        userEmailSpan.textContent = user.email || '';
-        await loadProducts();
-        await loadRecent();
-      }
-      draw();
+  const { data: { user } } = await sb.auth.getUser();
+  if(user){
+    authCard.classList.add('hidden');
+    const admin = await isAdmin(user.id);
+    if (admin){
+      [appCard, recentCard, adminDataCard, adminCard].forEach(el=>el.classList.add('hidden'));
+      adminHome.classList.remove('hidden');
+      userEmailSpan.textContent = user.email || '';
+      await loadProducts();
+      backToAdminHomeFromApp?.classList.remove('hidden');   // show Back on generator for admins
     } else {
-      [appCard, adminHome, adminDataCard, adminCard, recentCard].forEach(el=>el.classList.add('hidden'));
-      authCard.classList.remove('hidden');
+      adminHome.classList.add('hidden');
+      adminDataCard.classList.add('hidden');
+      adminCard.classList.add('hidden');
+      appCard.classList.remove('hidden');
+      recentCard.classList.remove('hidden');
+      userEmailSpan.textContent = user.email || '';
+      await loadProducts();
+      await loadRecent();
+      backToAdminHomeFromApp?.classList.add('hidden');      // hide for non-admins
     }
+    draw();
+  } else {
+    [appCard, adminHome, adminDataCard, adminCard, recentCard].forEach(el=>el.classList.add('hidden'));
+    authCard.classList.remove('hidden');
+    backToAdminHomeFromApp?.classList.add('hidden');
   }
+}
 
   signInBtn.addEventListener('click', async ()=>{
     signInBtn.disabled=true;
