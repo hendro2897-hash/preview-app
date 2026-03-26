@@ -429,8 +429,8 @@
     y += 24;
     pdf.setFontSize(11);
     const lines = [
-      `Salesperson: ${ (salesperson.value || '-').trim() } | Due date: ${ dueDate.value || '-' } | Product: ${ selItem.name }`,
-      `Customer: ${ (custName.value || '-').trim() } | Phone: ${ (custPhone.value || '-').trim() }`,
+      `Salesperson: ${ (salesperson.value || '-').trim() } | Due date: ${ dueDate.value || '-' } `,
+      `Customer: ${ (custName.value || '-').trim() } | Product: ${ selItem.name } `,
       `Font: ${ fontFamilySel.value || 'Poppins' } | Text: ${ (previewText.value || 'Your Text').trim() } | Size: ${ parseInt(fontSize.value,10) || 36 }`,
       `Direction: ${ directionSel.value } | V-Align: ${ valignSel.value } | Offset: ${ parseInt(valignOffset.value,10) || 0 } | Skala : 1:5`
     ];
@@ -588,8 +588,8 @@
 
   pdf.setFontSize(11);
   const lines = [
-    `Salesperson: ${r.salesperson || '-'} | Due date: ${r.due_date || '-'} | Product: ${r.product_name || '-'}`,
-    `Customer: ${r.customer_name || '-'} | Phone: ${r.customer_phone || '-'}`,
+    `Salesperson: ${r.salesperson || '-'} | Due date: ${r.due_date || '-'} `,
+    `Customer: ${r.customer_name || '-'} | Product: ${r.product_name || '-'} `,
     `Font: ${r.font_family || 'Poppins'} | Text: ${r.preview_text || 'Your Text'} | Size: ${r.font_size || 36}`,
     `Direction: ${r.direction} | V-Align: ${r.valign} | Offset: ${r.valign_offset || 0} | Skala : 1:5`
   ];
