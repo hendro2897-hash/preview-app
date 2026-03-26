@@ -574,6 +574,54 @@
     return pdf.output('bloburl');
   }
 
+ async function makeOrderPdf(r){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const margin = 40;
+  let y = 60;
+
+  pdf.setFontSize(16);
+  pdf.text('TYESO Indonesia - Order Preview', margin, y);
+  y += 24;
+
+  pdf.setFontSize(11);
+  const lines = [
+    `Salesperson: ${r.salesperson || '-'} | Due date: ${r.due_date || '-'} | Product: ${r.product_name || '-'}`,
+    `Customer: ${r.customer_name || '-'} | Phone: ${r.customer_phone || '-'}`,
+    `Font: ${r.font_family || 'Poppins'} | Text: ${r.preview_text || 'Your Text'} | Size: ${r.font_size || 36}`,
+    `Direction: ${r.direction} | V-Align: ${r.valign} | Offset: ${r.valign_offset || 0} | Skala : 1:5`
+  ];
+  lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
+
+  // render the order image on an offscreen canvas
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
+  const img = new Image(); img.crossOrigin = 'anonymous';
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now(); });
+
+  const c = document.createElement('canvas');
+  c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
+  const x = c.getContext('2d');
+  const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
+  const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
+  const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
+  x.drawImage(img, ox, oy, w, h);
+  const size = r.font_size || 36;
+  const y0 = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
+  x.save(); x.fillStyle = r.text_color || TEXT_COLOR; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.font = `${size}px ${r.font_family || 'Poppins'}`;
+  if (r.direction === 'horizontal') x.fillText(r.preview_text || 'Your Text', c.width/2, y0);
+  else { x.translate(c.width/2, y0); x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2); x.fillText(r.preview_text || 'Your Text', 0, 0); }
+  x.restore();
+
+  const dataUrl = c.toDataURL('image/jpeg', 0.95);
+  const imgW = pageW - margin*2;
+  const imgH = imgW * (c.height / c.width);
+  pdf.addImage(dataUrl, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
+
+  return pdf.output('bloburl');
+} 
+  
 async function loadRecent(){
     const { data: { user } } = await sb.auth.getUser();
     if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
@@ -651,14 +699,14 @@ async function loadRecent(){
       });
 
       card.querySelector('.dl-pdf').addEventListener('click', async () => {
-        try {
-          const url = await makeTextOnlyPdfUrl(r);
-          const a = document.createElement('a');
-          a.href = url; a.target = '_blank'; a.rel = 'noopener';
-          a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf';
-          a.click();
-        } catch(e){ console.warn(e); alert('PDF failed'); }
-      });
+  try {
+    const url = await makeOrderPdf(r);
+    const a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf';
+    a.click();
+  } catch(e){ console.warn(e); alert('PDF failed'); }
+});
 
       const input = card.querySelector('.textonly-link');
       const btn = card.querySelector('.copy-link');
@@ -770,16 +818,16 @@ async function loadRecent(){
     });
 
     adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        const r = data.find(x=>String(x.id)===btn.dataset.id);
-        if(!r) return;
-        try {
-          const url = await makeTextOnlyPdfUrl(r);
-          const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel='noopener';
-          a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf'; a.click();
-        } catch(e){ alert('PDF failed'); console.warn(e); }
-      });
-    });
+  btn.addEventListener('click', async ()=>{
+    const r = data.find(x=>String(x.id)===btn.dataset.id);
+    if(!r) return;
+    try {
+      const url = await makeOrderPdf(r);
+      const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel='noopener';
+      a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf'; a.click();
+    } catch(e){ alert('PDF failed'); console.warn(e); }
+  });
+});
 
     adminTbody.querySelectorAll('.textonly-link').forEach(async (input)=>{
       const r = data.find(x=>String(x.id)===input.dataset.id);
