@@ -737,6 +737,18 @@ async function loadRecent(){
   backToAdminHome?.addEventListener('click', ()=>{ showOnly(adminHome); });
   openGeneratorFromAdmin?.addEventListener('click', ()=>{ showOnly(appCard); recentCard.classList.remove('hidden'); });
   backToAdminHomeFromApp?.addEventListener('click', ()=>{ showOnly(adminHome); });
+
+  goGenerator?.addEventListener('click', async ()=>{
+  showOnly(appCard);
+  recentCard.classList.remove('hidden');   // <-- reveal recent on generator page
+  await loadRecent();                       // <-- load current (admin) user’s submissions
+});
+
+openGeneratorFromAdmin?.addEventListener('click', async ()=>{
+  showOnly(appCard);
+  recentCard.classList.remove('hidden');
+  await loadRecent();
+});
   
   async function loadAdminTable(){
     adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">Loading…</td></tr>`;
@@ -832,15 +844,15 @@ async function loadRecent(){
     authCard.classList.add('hidden');
     const admin = await isAdmin(user.id);
     if (admin){
-      // admin starts at the chooser, but we’ll keep the recent panel visible and load it
-      [appCard, adminDataCard, adminCard].forEach(el=>el.classList.add('hidden'));
+      // Admin chooser page: hide app & data tables, hide recent
+      [appCard, recentCard, adminDataCard, adminCard].forEach(el=>el.classList.add('hidden'));
       adminHome.classList.remove('hidden');
-      recentCard.classList.remove('hidden');          // <-- show recent for admins too
       userEmailSpan.textContent = user.email || '';
       await loadProducts();
       backToAdminHomeFromApp?.classList.remove('hidden');
-      await loadRecent();                              // <-- load current (admin) user’s submissions
+      // do NOT call loadRecent here
     } else {
+      // Regular user: show generator + their recent
       adminHome.classList.add('hidden');
       adminDataCard.classList.add('hidden');
       adminCard.classList.add('hidden');
@@ -848,7 +860,7 @@ async function loadRecent(){
       recentCard.classList.remove('hidden');
       userEmailSpan.textContent = user.email || '';
       await loadProducts();
-      await loadRecent();                              // <-- load current user’s submissions
+      await loadRecent();
       backToAdminHomeFromApp?.classList.add('hidden');
     }
     draw();
