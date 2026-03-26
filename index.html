@@ -415,7 +415,21 @@
     a.href = canvas.toDataURL('image/png');
     a.click();
   });
+  
+function capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
+['custName','salesperson'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', ()=>{
+    const pos = el.selectionStart;
+    const before = el.value;
+    el.value = capFirst(before);
+    // keep caret in place
+    el.setSelectionRange(pos, pos);
+  });
+});
+  
   downloadPdfBtn.addEventListener('click', async ()=>{
     const { jsPDF } = window.jspdf;
     const selItem = getSelItem();
