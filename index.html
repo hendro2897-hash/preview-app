@@ -187,7 +187,7 @@
 
     <div class="card hidden" id="recentCard" style="margin-top:12px">
       <div class="row" style="align-items:center;justify-content:space-between">
-        <h2 style="margin:0">Recent submissions (latest 3)</h2>
+        <h2 style="margin:0">Recent submissions (latest 6)</h2>
         <button id="clearFormBtn" class="btn secondary" style="width:auto;padding:8px 12px">Clear form</button>
       </div>
       <div id="recentList" class="hint">Sign in to see your recent submissions.</div>
@@ -622,24 +622,21 @@
   return pdf.output('bloburl');
 } 
   
-async function loadRecent(opts = { all: false }){
+async function loadRecent(){
   const { data: { user } } = await sb.auth.getUser();
   if(!user){ recentList.textContent = 'Sign in to see your recent submissions.'; return; }
   recentList.textContent = 'Loading…';
 
-  let q = sb
+  const { data, error } = await sb
     .from('orders')
     .select('id, created_at, product_name, preview_text, font_family, font_size, direction, valign, valign_offset, due_date, customer_name, customer_phone, salesperson, filename, text_color, product_path, user_id')
+    .eq('user_id', user.id)               // <-- only the current user (admin or not)
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(3);                             // change to 6 if you want more
 
-  if (!opts.all) q = q.eq('user_id', user.id);   // only current user for non-admins
-
-  const { data, error } = await q;
   if(error){ recentList.textContent = 'Failed to load: ' + error.message; return; }
   if(!data || !data.length){ recentList.textContent = 'No submissions yet.'; return; }
 
-  // (keep your existing render + buttons code exactly as is)
   recentList.innerHTML = data.map(r => `
     <div style="padding:10px;border:1px solid #eee;border-radius:8px;margin-top:8px" data-id="${r.id}">
       <div style="font-size:13px;color:#666">${fmtDate(r.created_at)}</div>
@@ -663,7 +660,46 @@ async function loadRecent(opts = { all: false }){
     </div>
   `).join('');
 
-  // ... keep the rest of your existing handlers (PNG/PDF/text-only) unchanged
+  // PNG / PDF handlers
+  recentList.querySelectorAll('.dl-png').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.closest('[data-id]').getAttribute('data-id');
+      const r = data.find(x=>String(x.id)===String(id));
+      if(!r) return;
+      try{
+        const blob = await renderOrderToBlob(r);
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = r.filename || 'preview.png'; a.click(); URL.revokeObjectURL(a.href);
+      }catch(e){ console.warn(e); alert('PNG failed'); }
+    });
+  });
+  recentList.querySelectorAll('.dl-pdf').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.closest('[data-id]').getAttribute('data-id');
+      const r = data.find(x=>String(x.id)===String(id));
+      if(!r) return;
+      try{
+        const url = await makeOrderPdf(r);
+        const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel='noopener';
+        a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf'; a.click();
+      }catch(e){ console.warn(e); alert('PDF failed'); }
+    });
+  });
+
+  // text-only links
+  const cards = Array.from(recentList.querySelectorAll('[data-id]'));
+  for (const card of cards){
+    const id = card.getAttribute('data-id');
+    const r = data.find(x=>String(x.id)===String(id));
+    const input = card.querySelector('.textonly-link');
+    const btn = card.querySelector('.copy-link');
+    if(!r || !input || !btn) continue;
+    try { input.value = await makeTextOnlyPdfUrl(r); } catch { input.value = 'Failed to create link'; }
+    btn.addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy link', 1200); }
+      catch{ alert('Copy failed'); }
+    });
+  }
 }
 
   function clearForm(){
@@ -796,13 +832,14 @@ async function loadRecent(opts = { all: false }){
     authCard.classList.add('hidden');
     const admin = await isAdmin(user.id);
     if (admin){
+      // admin starts at the chooser, but we’ll keep the recent panel visible and load it
       [appCard, adminDataCard, adminCard].forEach(el=>el.classList.add('hidden'));
       adminHome.classList.remove('hidden');
-      recentCard.classList.remove('hidden');              // <-- show for admins
+      recentCard.classList.remove('hidden');          // <-- show recent for admins too
       userEmailSpan.textContent = user.email || '';
       await loadProducts();
       backToAdminHomeFromApp?.classList.remove('hidden');
-      await loadRecent({ all: true });                    // <-- load all recent submissions
+      await loadRecent();                              // <-- load current (admin) user’s submissions
     } else {
       adminHome.classList.add('hidden');
       adminDataCard.classList.add('hidden');
@@ -811,7 +848,7 @@ async function loadRecent(opts = { all: false }){
       recentCard.classList.remove('hidden');
       userEmailSpan.textContent = user.email || '';
       await loadProducts();
-      await loadRecent({ all: false });                   // <-- only current user
+      await loadRecent();                              // <-- load current user’s submissions
       backToAdminHomeFromApp?.classList.add('hidden');
     }
     draw();
