@@ -184,7 +184,7 @@
         </div>
       </div>
 
-      <canvas id="canvas" width="4500" height="5625"></canvas>
+      <canvas id="canvas" width="1080" height="1350"></canvas>
       <img id="bg" alt="" style="display:none" crossorigin="anonymous" />
       <div class="row" style="margin-top:10px">
         <button class="btn" id="downloadPng">Save as PNG</button>
@@ -661,7 +661,7 @@ async function makeTextOnlyPdfUrl(r){
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now(); });
 
   const c = document.createElement('canvas');
-  c.width = r.canvas_w || 4500; c.height = r.canvas_h || 5625;
+  c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
   const x = c.getContext('2d');
   const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
   const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
@@ -845,7 +845,7 @@ function renderAdminRows(rows){
       const img = new Image(); img.crossOrigin = 'anonymous';
       img.onload = ()=>{
         const c = document.createElement('canvas');
-        c.width = r.canvas_w || 4500; c.height = r.canvas_h || 5625;
+        c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
         const x = c.getContext('2d');
         const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
         const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
