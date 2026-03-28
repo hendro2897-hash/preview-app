@@ -43,6 +43,10 @@
       <input id="password" type="password" placeholder="••••••••" />
       <div class="row">
         <button id="signin" class="btn">Login</button>
+        <div class="row" style="margin-top:8px">
+  <button id="forgot" class="btn secondary">Forgot password?</button>
+</div>
+<div class="hint" id="authMsg"></div>
         <button id="signup" class="btn secondary">Sign up</button>
       </div>
       <div class="hint">Login to access the preview form.</div>
@@ -441,32 +445,46 @@ function capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 });
   
   downloadPdfBtn.addEventListener('click', async ()=>{
-    const { jsPDF } = window.jspdf;
-    const selItem = getSelItem();
-    if(!selItem){ alert('Please select a product.'); return; }
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const margin = 40;
-    let y = 60;
-    pdf.setFontSize(16);
-    pdf.text('TYESO Indonesia - Order Preview', margin, y);
-    y += 24;
-    pdf.setFontSize(11);
-    const lines = [
-      `Salesperson: ${ (salesperson.value || '-').trim() } | Due date: ${ dueDate.value || '-' } `,
-      `Customer: ${ (custName.value || '-').trim() } | Product: ${ selItem.name } `,
-      `Font: ${ fontFamilySel.value || 'Poppins' } | Text: ${ (previewText.value || 'Your Text').trim() } | Size: ${ parseInt(fontSize.value,10) || 36 }`,
-      `Direction: ${ directionSel.value } | V-Align: ${ valignSel.value } | Offset: ${ parseInt(valignOffset.value,10) || 0 } | Skala : 1:5`
-    ];
-    lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-    const imgW = pageW - margin*2;
-    const imgH = imgW * (canvas.height / canvas.width);
-    pdf.addImage(dataUrl, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
-    const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
-    const ts = new Date().toISOString().replace(/[:.]/g,'-');
-    pdf.save(`TYESO-order-${base}-${ts}.pdf`);
-  });
+  const { jsPDF } = window.jspdf;
+  const selItem = getSelItem();
+  if(!selItem){ alert('Please select a product.'); return; }
+
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 40;
+
+  let y = 60;
+  pdf.setFontSize(16);
+  pdf.text('TYESO Indonesia - Order Preview', margin, y);
+  y += 24;
+
+  pdf.setFontSize(11);
+  const lines = [
+    `Salesperson: ${ (salesperson.value || '-').trim() } | Due date: ${ dueDate.value || '-' } `,
+    `Customer: ${ (custName.value || '-').trim() } | Product: ${ selItem.name } `,
+    `Font: ${ fontFamilySel.value || 'Poppins' } | Text: ${ (previewText.value || 'Your Text').trim() } | Size: ${ parseInt(fontSize.value,10) || 36 }`,
+    `Direction: ${ directionSel.value } | V-Align: ${ valignSel.value } | Offset: ${ parseInt(valignOffset.value,10) || 0 } | Skala : 1:5`
+  ];
+  lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
+
+  // use PNG from the canvas (same pixels as Save PNG)
+  const dataUrl = canvas.toDataURL('image/png');
+
+  // fit image inside page margins while preserving aspect
+  const maxW = pageW - margin*2;
+  const maxH = pageH - (y + 10) - margin;
+  const aspect = canvas.height / canvas.width;
+  let imgW = maxW;
+  let imgH = imgW * aspect;
+  if (imgH > maxH) { imgH = maxH; imgW = imgH / aspect; }
+
+  pdf.addImage(dataUrl, 'PNG', margin, y + 10, imgW, imgH, undefined, 'FAST');
+
+  const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
+  const ts = new Date().toISOString().replace(/[:.]/g,'-');
+  pdf.save(`TYESO-order-${base}-${ts}.pdf`);
+});
 
   submitBtn.addEventListener('click', async ()=>{
     const missing = validateForm();
@@ -959,6 +977,20 @@ async function loadAdminTable(){
   });
 
   signOutBtn.addEventListener('click', async ()=>{ await sb.auth.signOut(); refresh(); });
+
+  const forgotBtn = document.getElementById('forgot');
+const authMsg = document.getElementById('authMsg');
+
+forgotBtn?.addEventListener('click', async ()=>{
+  const email = (emailInput.value || '').trim();
+  if(!email){ authMsg.textContent = 'Enter your email above first.'; return; }
+  forgotBtn.disabled = true; authMsg.textContent = 'Sending reset link…';
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://hendro2897-hash.github.io/preview-app/'
+  });
+  forgotBtn.disabled = false;
+  authMsg.textContent = error ? ('Error: ' + error.message) : 'Reset link sent. Check your inbox.';
+});
 
   uploadBtn.addEventListener('click', async () => {
     const files = fileInput.files;
