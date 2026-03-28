@@ -587,7 +587,10 @@ function capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
     }
   }
 
-  async function makeTextOnlyPdfUrl(r){
+const PREVIEW_SCALE = 5; // 1 / 0.2
+const PX_TO_PT = 0.75; // 1 px ≈ 0.75 pt (96 px per inch, 72 pt per inch)
+
+async function makeTextOnlyPdfUrl(r){
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'pt', format: 'a3', orientation: 'l', hotfixes: ['px_scaling'] });
   const pageW = pdf.internal.pageSize.getWidth();
@@ -598,17 +601,23 @@ function capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
     return m? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [128,128,128];
   };
 
-  const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins'); // true if your TTF was embedded
+  const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins');
   if (!usedFont) pdf.setFont('helvetica','normal');
 
-  const previewSizePt = Math.max(8, Math.min(300, Number(r.font_size) || 36));
-  const fontSizePt = previewSizePt * PREVIEW_SCALE; // 5x like your preview scale
+  // r.font_size is PX from the preview UI
+  const previewSizePx = Math.max(8, Math.min(300, Number(r.font_size) || 36));
+  const fontSizePt = previewSizePx * PX_TO_PT * PREVIEW_SCALE; // px -> pt, then 5x
   pdf.setFontSize(fontSizePt);
+
+  // optional: show real size in mm on your button
+  const mm = previewSizePx * PREVIEW_SCALE * (25.4/96);
+  const btn = document.getElementById('downloadPdfBtn');
+  if (btn) btn.textContent = `Download PDF (text ${mm.toFixed(1)} mm)`;
 
   const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
   pdf.setTextColor(cr,cg,cb);
 
-  const text = (r.preview_text || 'Your Text').trim(); // no emoji
+  const text = (r.preview_text || 'Your Text').trim();
   const maxWidth = pageW * 0.9;
   let lines;
   try { lines = pdf.splitTextToSize(text, maxWidth); }
