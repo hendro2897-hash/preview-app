@@ -530,7 +530,7 @@ function capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
     try { return new Date(d).toLocaleString(); } catch { return d || '-'; }
   }
 
-  const PREVIEW_SCALE = 5;
+  const PREVIEW_SCALE = 5; // 1 / 0.2
 
   const FONT_FILE_MAP = {
     Poppins: 'fonts/Poppins-Black.ttf',
@@ -587,7 +587,7 @@ function capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
     }
   }
 
-const PREVIEW_SCALE = 5; // 1 / 0.2
+
 const PX_TO_PT = 0.75; // 1 px ≈ 0.75 pt (96 px per inch, 72 pt per inch)
 
 async function makeTextOnlyPdfUrl(r){
