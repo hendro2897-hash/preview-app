@@ -637,17 +637,20 @@ async function makeTextOnlyPdfUrl(r){
     }
   });
 
-  // jsPDF line height in mm is ~ fontSize * 1.15 / 3.527? Simpler: use 1.2 * targetMm
-  const lineHeightMm = targetMm * 1.2;
-  const blockHeightMm = lineHeightMm * (lines.length - 1);
-  const startY = (pageH - blockHeightMm) / 2;
+// canvas uses: lineHeightPx = sizePx * 1.2, and blockHeightPx = lineHeightPx * (lines.length - 1)
+const lineHeightMm = previewSizePx * PREVIEW_SCALE * 1.2 * PX_TO_MM; // convert the canvas line height to mm
+const blockHeightMm = lineHeightMm * Math.max(0, lines.length - 1);
 
-  lines.forEach((line, i) => {
-    const w = pdf.getTextWidth(line); // returns in mm because unit='mm'
-    const x = (pageW - w) / 2;
-    const y = startY + i * lineHeightMm;
-    pdf.text(line, x, y, { baseline: 'middle' });
-  });
+  // center the block vertically
+const startY = (pageH - blockHeightMm) / 2;
+
+// draw
+lines.forEach((line, i) => {
+  const w = pdf.getTextWidth(line); // mm because unit='mm'
+  const x = (pageW - w) / 2;
+  const y = startY + i * lineHeightMm;
+  pdf.text(line, x, y, { baseline: 'middle' });
+});
 
   // Upload and return a public URL
   const blob = pdf.output('blob');
