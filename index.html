@@ -595,7 +595,6 @@ const PX_TO_PT = 0.75;
 async function makeTextOnlyPdfUrl(r){
   const { jsPDF } = window.jspdf;
 
-  // A3 landscape, work in mm for positioning; font size must be set in points.
   const pdf = new jsPDF({ unit: 'mm', format: 'a3', orientation: 'l', hotfixes: ['px_scaling'] });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -605,62 +604,60 @@ async function makeTextOnlyPdfUrl(r){
     return m? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [128,128,128];
   };
 
-  const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins');
+  // font
+  const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins').catch(()=>false);
   if (!usedFont) pdf.setFont('helvetica','normal');
 
-  // ---- size & line-height (px -> mm -> pt) ----
-  const PREVIEW_SCALE = 5; // your “Skala 1:5”
-  const PX_TO_MM = 25.4 / 96; // 1 px = 0.264583... mm
-  const MM_TO_PT = 72 / 25.4; // 1 mm = 2.834645... pt
+  // ---- size math: px -> mm -> pt ----
+  const PREVIEW_SCALE = 5;
+  const PX_TO_MM = 25.4 / 96; // 1px = 0.2645833 mm
+  const MM_TO_PT = 72 / 25.4; // 1mm = 2.8346457 pt
 
   const sizePx = Math.max(8, Math.min(300, Number(r.font_size) || 36));
-
-  // physical target size in mm (e.g. 15 px * 5 * 0.26458 = 19.84375 mm)
-  const targetMm = sizePx * PREVIEW_SCALE * PX_TO_MM;
-
-  // jsPDF needs points
-  const targetPt = targetMm * MM_TO_PT;
+  const targetMm = sizePx * PREVIEW_SCALE * PX_TO_MM; // e.g. 15*5*0.26458 = 19.84375 mm
+  const targetPt = targetMm * MM_TO_PT; // jsPDF needs points
   pdf.setFontSize(targetPt);
 
   // colour
   const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
   pdf.setTextColor(cr,cg,cb);
 
-  // ---- text lines (preserve user line breaks) ----
+  // ---- lines (preserve user line breaks) ----
   const raw = (r.preview_text || 'Your Text').trim();
-  const userLines = raw.split(/\r?\n/);
+  const userLines = raw.split(/\r?\n/).filter(l => l.length || raw === ''); // keep empty line if user typed it
   const maxWidthMm = pageW * 0.9;
 
   let lines = [];
-  userLines.forEach(l => {
+  for (const l of (userLines.length? userLines : ['Your Text'])) {
     try {
-      const wrapped = pdf.splitTextToSize(l, maxWidthMm);
-      lines = lines.concat(wrapped);
+      lines = lines.concat(pdf.splitTextToSize(l, maxWidthMm));
     } catch {
       pdf.setFont('helvetica','normal');
-      const wrapped = pdf.splitTextToSize(l, maxWidthMm);
-      lines = lines.concat(wrapped);
+      lines = lines.concat(pdf.splitTextToSize(l, maxWidthMm));
     }
-  });
+  }
+  if (!lines.length) lines = ['Your Text'];
 
-  // line-height = targetMm * 1.2 (same factor as canvas: size * 1.2, then scaled)
+  // line height = targetMm * 1.2 (same factor as canvas)
   const lineHeightMm = targetMm * 1.2;
   const blockHeightMm = lineHeightMm * Math.max(0, lines.length - 1);
 
-  // ---- vertical anchor (same logic as canvas: baseY + offset) ----
-  const valign = r.valign || 'middle';
+  // ---- vertical anchor (same logic as canvas) ----
+  const valign = (r.valign || 'middle'); // 'top' | 'middle' | 'bottom'
   const offsetMm = (Number(r.valign_offset) || 0) * PREVIEW_SCALE * PX_TO_MM;
 
   let yBaseMm;
-  if (valign === 'top') yBaseMm = 30; // ~30mm top margin
-  else if (valign === 'bottom') yBaseMm = pageH - 30; // ~30mm bottom margin
+  if (valign === 'top') yBaseMm = 30;
+  else if (valign === 'bottom') yBaseMm = pageH - 30;
   else yBaseMm = pageH / 2; // middle
   yBaseMm += offsetMm;
 
-  // first line baseline (baseline:'middle' matches canvas)
+  // guard against NaN
+  if (!isFinite(yBaseMm)) yBaseMm = pageH / 2;
+
   const startY = yBaseMm - blockHeightMm / 2;
 
-  // draw centered horizontally
+  // draw (centered horizontally, baseline middle matches canvas)
   lines.forEach((line, i) => {
     const w = pdf.getTextWidth(line); // mm
     const x = (pageW - w) / 2;
@@ -668,7 +665,7 @@ async function makeTextOnlyPdfUrl(r){
     pdf.text(line, x, y, { baseline: 'middle' });
   });
 
-  // upload & return public URL (unchanged)
+  // upload & return public URL
   const blob = pdf.output('blob');
   const key = `textonly/${r.id || crypto.randomUUID()}-${Date.now()}.pdf`;
   const { error: upErr } = await sb.storage.from(BUCKET).upload(key, blob, {
