@@ -473,11 +473,11 @@ function capFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
   pdf.setFontSize(11);
   const lines = [
-    `Salesperson: ${ (salesperson.value || '-').trim() } | Due date: ${ dueDate.value || '-' } `,
-    `Customer: ${ (custName.value || '-').trim() } | Product: ${ selItem.name } `,
-    `Font: ${ fontFamilySel.value || 'Poppins' } | Text: ${ (previewText.value || 'Your Text').trim() } | Size: ${ parseInt(fontSize.value,10) || 36 }`,
+    `Salesperson: ${ (salesperson.value || '-').trim() } | Customer: ${ (custName.value || '-').trim() } |Due date: ${ dueDate.value || '-' } `,
+    `Product: ${ selItem.name } | Font: ${ fontFamilySel.value || 'Poppins' } | Size: ${ parseInt(fontSize.value,10) || 36 } `,
     `Direction: ${ directionSel.value } | V-Align: ${ valignSel.value } | Offset: ${ parseInt(valignOffset.value,10) || 0 } | Skala : 1:5`
   ];
+    `Text: ${ (previewText.value || 'Your Text').trim() }  `,
   lines.forEach(l => { pdf.text(l, margin, y); y += 18; });
 
   // use PNG from the canvas (same pixels as Save PNG)
