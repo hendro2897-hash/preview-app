@@ -595,7 +595,7 @@ const PX_TO_PT = 0.75;
 async function makeTextOnlyPdfUrl(r){
   const { jsPDF } = window.jspdf;
 
-  // Work in mm for positioning (easier for A3 landscape), but font size must be in pt.
+  // A3 landscape, work in mm for positioning; font size must be set in points.
   const pdf = new jsPDF({ unit: 'mm', format: 'a3', orientation: 'l', hotfixes: ['px_scaling'] });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -608,29 +608,29 @@ async function makeTextOnlyPdfUrl(r){
   const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins');
   if (!usedFont) pdf.setFont('helvetica','normal');
 
-  // --- size conversions -------------------------------------------------
-  const PX_TO_MM = 25.4 / 96;
-  const MM_TO_PT = 72 / 25.4; // 1 mm = 2.834645... pt
-  const PT_TO_MM = 25.4 / 72;
-
+  // ---- size & line-height (px -> mm -> pt) ----
   const PREVIEW_SCALE = 5; // your “Skala 1:5”
-  const previewSizePx = Math.max(8, Math.min(300, Number(r.font_size) || 36));
+  const PX_TO_MM = 25.4 / 96; // 1 px = 0.264583... mm
+  const MM_TO_PT = 72 / 25.4; // 1 mm = 2.834645... pt
 
-  // Physical target size in mm (same as preview * 5), then convert to points for setFontSize
-  const targetMm = previewSizePx * PREVIEW_SCALE * PX_TO_MM; // e.g. 36px -> ~47.6 mm
-  const targetPt = targetMm * MM_TO_PT; // <- jsPDF needs points
+  const sizePx = Math.max(8, Math.min(300, Number(r.font_size) || 36));
+
+  // physical target size in mm (e.g. 15 px * 5 * 0.26458 = 19.84375 mm)
+  const targetMm = sizePx * PREVIEW_SCALE * PX_TO_MM;
+
+  // jsPDF needs points
+  const targetPt = targetMm * MM_TO_PT;
   pdf.setFontSize(targetPt);
 
   // colour
   const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
   pdf.setTextColor(cr,cg,cb);
 
-  // --- text layout (mirror the canvas logic) ----------------------------
+  // ---- text lines (preserve user line breaks) ----
   const raw = (r.preview_text || 'Your Text').trim();
   const userLines = raw.split(/\r?\n/);
   const maxWidthMm = pageW * 0.9;
 
-  // Preserve user line breaks; wrap only if a single line is too wide
   let lines = [];
   userLines.forEach(l => {
     try {
@@ -643,22 +643,32 @@ async function makeTextOnlyPdfUrl(r){
     }
   });
 
-  // Use the *actual* font size (in pt) to derive line height, then convert to mm for positioning
-  const lineHeightPt = targetPt * 1.2; // same 1.2 factor as canvas
-  const lineHeightMm = lineHeightPt * PT_TO_MM;
+  // line-height = targetMm * 1.2 (same factor as canvas: size * 1.2, then scaled)
+  const lineHeightMm = targetMm * 1.2;
   const blockHeightMm = lineHeightMm * Math.max(0, lines.length - 1);
 
-  // Center the block (canvas uses yBase - blockHeight/2, with baseline 'middle')
-  const startY = (pageH - blockHeightMm) / 2;
+  // ---- vertical anchor (same logic as canvas: baseY + offset) ----
+  const valign = r.valign || 'middle';
+  const offsetMm = (Number(r.valign_offset) || 0) * PREVIEW_SCALE * PX_TO_MM;
 
+  let yBaseMm;
+  if (valign === 'top') yBaseMm = 30; // ~30mm top margin
+  else if (valign === 'bottom') yBaseMm = pageH - 30; // ~30mm bottom margin
+  else yBaseMm = pageH / 2; // middle
+  yBaseMm += offsetMm;
+
+  // first line baseline (baseline:'middle' matches canvas)
+  const startY = yBaseMm - blockHeightMm / 2;
+
+  // draw centered horizontally
   lines.forEach((line, i) => {
-    const w = pdf.getTextWidth(line); // in mm (because unit='mm')
+    const w = pdf.getTextWidth(line); // mm
     const x = (pageW - w) / 2;
     const y = startY + i * lineHeightMm;
     pdf.text(line, x, y, { baseline: 'middle' });
   });
 
-  // Upload and return a public URL (unchanged)
+  // upload & return public URL (unchanged)
   const blob = pdf.output('blob');
   const key = `textonly/${r.id || crypto.randomUUID()}-${Date.now()}.pdf`;
   const { error: upErr } = await sb.storage.from(BUCKET).upload(key, blob, {
