@@ -595,6 +595,7 @@ const PX_TO_PT = 0.75;
 async function makeTextOnlyPdfUrl(r){
   const { jsPDF } = window.jspdf;
 
+  // A3 landscape, work in mm (same as your previous working version)
   const pdf = new jsPDF({ unit: 'mm', format: 'a3', orientation: 'l', hotfixes: ['px_scaling'] });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -604,12 +605,12 @@ async function makeTextOnlyPdfUrl(r){
     return m? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [128,128,128];
   };
 
-  // font
-  const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins').catch(()=>false);
+  // keep your original font-loading call exactly as before
+  const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins');
   if (!usedFont) pdf.setFont('helvetica','normal');
 
-  // ---- size math: px -> mm -> pt ----
-  const PREVIEW_SCALE = 5;
+  // ---- size math: px -> mm -> pt (the only change) ----
+  const PREVIEW_SCALE = 5; // your “Skala 1:5”
   const PX_TO_MM = 25.4 / 96; // 1px = 0.2645833 mm
   const MM_TO_PT = 72 / 25.4; // 1mm = 2.8346457 pt
 
@@ -618,32 +619,33 @@ async function makeTextOnlyPdfUrl(r){
   const targetPt = targetMm * MM_TO_PT; // jsPDF needs points
   pdf.setFontSize(targetPt);
 
-  // colour
   const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
   pdf.setTextColor(cr,cg,cb);
 
-  // ---- lines (preserve user line breaks) ----
+  // ---- text lines (preserve user line breaks) ----
   const raw = (r.preview_text || 'Your Text').trim();
-  const userLines = raw.split(/\r?\n/).filter(l => l.length || raw === ''); // keep empty line if user typed it
+  const userLines = raw.split(/\r?\n/);
   const maxWidthMm = pageW * 0.9;
 
   let lines = [];
-  for (const l of (userLines.length? userLines : ['Your Text'])) {
+  userLines.forEach(l => {
     try {
-      lines = lines.concat(pdf.splitTextToSize(l, maxWidthMm));
+      const wrapped = pdf.splitTextToSize(l, maxWidthMm);
+      lines = lines.concat(wrapped);
     } catch {
       pdf.setFont('helvetica','normal');
-      lines = lines.concat(pdf.splitTextToSize(l, maxWidthMm));
+      const wrapped = pdf.splitTextToSize(l, maxWidthMm);
+      lines = lines.concat(wrapped);
     }
-  }
+  });
   if (!lines.length) lines = ['Your Text'];
 
-  // line height = targetMm * 1.2 (same factor as canvas)
+  // line-height = targetMm * 1.2 (same factor as canvas: size * 1.2, then scaled)
   const lineHeightMm = targetMm * 1.2;
   const blockHeightMm = lineHeightMm * Math.max(0, lines.length - 1);
 
-  // ---- vertical anchor (same logic as canvas) ----
-  const valign = (r.valign || 'middle'); // 'top' | 'middle' | 'bottom'
+  // vertical anchor (same logic as canvas)
+  const valign = r.valign || 'middle';
   const offsetMm = (Number(r.valign_offset) || 0) * PREVIEW_SCALE * PX_TO_MM;
 
   let yBaseMm;
@@ -651,9 +653,6 @@ async function makeTextOnlyPdfUrl(r){
   else if (valign === 'bottom') yBaseMm = pageH - 30;
   else yBaseMm = pageH / 2; // middle
   yBaseMm += offsetMm;
-
-  // guard against NaN
-  if (!isFinite(yBaseMm)) yBaseMm = pageH / 2;
 
   const startY = yBaseMm - blockHeightMm / 2;
 
@@ -665,7 +664,7 @@ async function makeTextOnlyPdfUrl(r){
     pdf.text(line, x, y, { baseline: 'middle' });
   });
 
-  // upload & return public URL
+  // upload & return public URL (unchanged)
   const blob = pdf.output('blob');
   const key = `textonly/${r.id || crypto.randomUUID()}-${Date.now()}.pdf`;
   const { error: upErr } = await sb.storage.from(BUCKET).upload(key, blob, {
