@@ -869,17 +869,80 @@ function renderAdminRows(rows){
     });
   });
 
-  adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
-      if(!r) return;
-      try {
-        const url = await makeOrderPdf(r);
-        const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel='noopener';
-        a.download = (r.filename || 'preview').replace(/\.png$/i,'') + '.pdf'; a.click();
-      } catch(e){ alert('PDF failed'); console.warn(e); }
-    });
+  // replace the existing admin PDF click handler with this:
+adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
+    if(!r) return;
+    try {
+      // get product image
+      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => {
+        img.onload = res; img.onerror = rej;
+        img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now();
+      });
+
+      // render to canvas (same logic as preview)
+      const c = document.createElement('canvas');
+      c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
+      const x = c.getContext('2d');
+      const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
+      const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
+      const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
+      x.drawImage(img, ox, oy, w, h);
+      const size = r.font_size || 36;
+      const y0 = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
+      const raw = (r.preview_text || 'Your Text').trim();
+      const lines = raw.split(/\r?\n/);
+      const lineHeight = size * 1.2;
+      const blockHeight = lineHeight * (lines.length - 1);
+      const startY = y0 - blockHeight/2;
+      x.save(); x.fillStyle = r.text_color || TEXT_COLOR; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = `${size}px ${r.font_family || 'Poppins'}`;
+      if (r.direction === 'horizontal') {
+        lines.forEach((line,i)=> x.fillText(line, c.width/2, startY + i*lineHeight));
+      } else {
+        x.translate(c.width/2, y0); x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2);
+        lines.forEach((line,i)=> x.fillText(line, 0, (i - (lines.length-1)/2) * lineHeight));
+      }
+      x.restore();
+
+      // build A4 PDF (same as your “Download PDF” button)
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 40;
+      let y = 60;
+
+      pdf.setFontSize(16); pdf.text('TYESO Indonesia - Order Preview', margin, y); y += 24;
+      pdf.setFontSize(11);
+      const info = [
+        `Salesperson: ${r.salesperson || '-'} | Customer: ${r.customer_name || '-'} | Due: ${r.due_date || '-'}`,
+        `Product: ${r.product_name || '-'} | Font: ${r.font_family || 'Poppins'} | Size: ${r.font_size || 36}`,
+        `Direction: ${r.direction} | V-Align: ${r.valign} | Offset: ${r.valign_offset || 0} | Skala : 1:5`,
+        `Text: ${(r.preview_text || 'Your Text').trim()}`
+      ];
+      info.forEach(l => { pdf.text(l, margin, y); y += 18; });
+
+      const dataUrl = c.toDataURL('image/png');
+      const maxW = pageW - margin*2;
+      const maxH = pageH - (y + 10) - margin;
+      const aspect = c.height / c.width;
+      let imgW = maxW, imgH = imgW * aspect;
+      if (imgH > maxH) { imgH = maxH; imgW = imgH / aspect; }
+      pdf.addImage(dataUrl, 'PNG', margin, y + 10, imgW, imgH, undefined, 'FAST');
+
+      const base = (r.preview_text || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
+      const ts = new Date().toISOString().replace(/[:.]/g,'-');
+      pdf.save(`TYESO-order-${base}-${ts}.pdf`);
+    } catch(e){
+      console.warn(e);
+      alert('PDF failed');
+    }
   });
+});
 
   adminTbody.querySelectorAll('.textonly-link').forEach(async (input)=>{
     const r = adminRows.find(x=>String(x.id)===input.dataset.id);
