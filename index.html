@@ -267,6 +267,20 @@
   const TEXT_COLOR = 'rgb(128,128,128)';
   const BUCKET = 'products';
 
+// lock due date to D+3
+const d = new Date();
+d.setDate(d.getDate() + 3);
+const minStr = d.toISOString().slice(0,10);
+dueDate.min = minStr;
+if (!dueDate.value || dueDate.value < minStr) dueDate.value = minStr;
+
+dueDate.addEventListener('change', ()=>{
+  if (dueDate.value < minStr) {
+    dueDate.value = minStr;
+    statusEl.textContent = 'Earliest due date is D+3.';
+  }
+});
+  
   const fontDefs = [
     ['MagnoliaScript', 'fonts/MagnoliaScript.ttf', { format: 'truetype' }],
     ['Amoresa', 'fonts/Amoresa.ttf', { format: 'truetype' }],
@@ -537,12 +551,18 @@ function capFirst(s){ return s? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   });
 
   submitBtn.addEventListener('click', async ()=>{
-    const missing = validateForm();
-    if(missing.length){
-      alert('Please fill all required fields:\n- ' + missing.join('\n- '));
-      updateSubmitState();
-      return;
-    }
+  const missing = validateForm();
+  if (missing.length) {
+    alert('Please fill all required fields:\n- ' + missing.join('\n- '));
+    updateSubmitState();
+    return;
+  }
+  // NEW: block earlier than D+3
+  if (dueDate.value < minStr) {
+    alert('Earliest due date is D+3.');
+    dueDate.value = minStr;
+    return;
+  }
     const { data: { user } } = await sb.auth.getUser();
     if(!user){ alert('Please sign in.'); return; }
     const selItem = getSelItem();
