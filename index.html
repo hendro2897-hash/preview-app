@@ -607,14 +607,13 @@ async function makeTextOnlyPdfUrl(r){
   const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins');
   if (!usedFont) pdf.setFont('helvetica','normal');
 
-  // Map canvas px (1080 px = 103 mm real width) to real mm
-const MM_PER_PX = 103 / 1080; // ≈ 0.09537
+  const MM_PER_PX_REAL = 0.336825; // 100 px → 33.6825 mm, 35 px → ~11.79 mm (em square)
 const MM_TO_PT = 72 / 25.4;
 
 const sizePx = Math.max(8, Math.min(300, Number(r.font_size) || 36));
-const targetMm = sizePx * MM_PER_PX;           // real size (1:1)
+const targetMm = sizePx * MM_PER_PX_REAL;
 pdf.setFontSize(targetMm * MM_TO_PT);
-
+  
   const [cr,cg,cb] = parseRgb(r.text_color || 'rgb(128,128,128)');
   pdf.setTextColor(cr,cg,cb);
 
