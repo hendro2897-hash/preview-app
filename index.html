@@ -632,23 +632,9 @@ async function makeTextOnlyPdfUrl(r){
   const lineHeightMm = targetMm * 1.2;
   const blockHeightMm = lineHeightMm * Math.max(0, lines.length - 1);
 
-  // map canvas anchor (without offset) to page, then add offset once
-  const canvasH = Number(r.canvas_h) || 1350;
-  const valign = r.valign || 'middle';
-  const yBasePxBase = (valign === 'top')? 120 : (valign === 'bottom')? (canvasH - 120) : (canvasH / 2);
-  const offsetMm = (Number(r.valign_offset) || 0) * PREVIEW_SCALE * PX_TO_MM;
-
-  let yBaseMm = (yBasePxBase / canvasH) * pageH + offsetMm;
-  if (!isFinite(yBaseMm)) yBaseMm = pageH / 2;
-
-  // first line baseline
-  let startY = yBaseMm - blockHeightMm / 2;
-
-  // --- clamp so the whole block stays on the page ---
-  const topLimit = lineHeightMm / 2; // need half a line above the first baseline
-  const bottomLimit = pageH - lineHeightMm / 2; // and below the last baseline
-  if (startY < topLimit) startY = topLimit;
-  if (startY + blockHeightMm > bottomLimit) startY = bottomLimit - blockHeightMm;
+  // CENTER of the page
+  const yBaseMm = pageH / 2;
+  const startY = yBaseMm - blockHeightMm / 2;
 
   lines.forEach((line, i) => {
     const w = pdf.getTextWidth(line);
