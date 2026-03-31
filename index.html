@@ -432,11 +432,58 @@
   resetAlign.addEventListener('click', ()=>{ valignSel.value='middle'; valignOffset.value=0; valignOffsetVal.textContent='0'; draw(); });
 
   downloadPng.addEventListener('click', ()=>{
-    const a = document.createElement('a');
-    a.download = (fnameEl?.textContent || (previewText.value || 'preview') + '.png');
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-  });
+  if (!bg.complete || !bg.naturalWidth) return;
+
+  const SCALE = 5; // 5× the preview (1080×1350 → 5400×6750)
+  const W = 1080 * SCALE, H = 1350 * SCALE;
+
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+
+  // white bg
+  x.fillStyle = '#fff'; x.fillRect(0,0,W,H);
+
+  // draw product image cover-fit
+  const iw = bg.naturalWidth, ih = bg.naturalHeight;
+  const ir = iw / ih, cr = W / H;
+  let dw, dh, dx, dy;
+  if (ir > cr) { dh = H; dw = dh * ir; dx = (W - dw) / 2; dy = 0; }
+  else { dw = W; dh = dw / ir; dx = 0; dy = (H - dh) / 2; }
+  x.drawImage(bg, dx, dy, dw, dh);
+
+  // draw text (scale everything by SCALE)
+  const raw = (previewText.value || '').trim() || 'Your Text';
+  const lines = raw.split(/\r?\n/);
+  const family = fontFamilySel.value || 'Poppins';
+  const size = (parseInt(fontSize.value,10) || 36) * SCALE;
+  const dir = directionSel.value;
+  const yBase = (baseY() + parseInt(valignOffset.value,10)) * SCALE;
+
+  x.save();
+  x.fillStyle = TEXT_COLOR;
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.font = `${size}px ${family}`;
+
+  const lineHeight = size * 1.2;
+  const blockHeight = lineHeight * (lines.length - 1);
+  const startY = yBase - blockHeight/2;
+
+  if (dir === 'horizontal') {
+    lines.forEach((line,i)=> x.fillText(line, W/2, startY + i*lineHeight));
+  } else {
+    x.translate(W/2, yBase);
+    x.rotate(dir === 'vertical-down' ? Math.PI/2 : -Math.PI/2);
+    lines.forEach((line,i)=> x.fillText(line, 0, (i - (lines.length-1)/2) * lineHeight));
+  }
+  x.restore();
+
+  const a = document.createElement('a');
+  a.download = (fnameEl?.textContent || (previewText.value || 'preview') + '.png').replace(/\.png$/i,'') + '_5x.png';
+  a.href = c.toDataURL('image/png');
+  a.click();
+});
 
 function capFirst(s){ return s? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
