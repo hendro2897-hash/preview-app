@@ -595,7 +595,7 @@ const PX_TO_PT = 0.75;
 async function makeTextOnlyPdfUrl(r){
   const { jsPDF } = window.jspdf;
 
-  // A3 landscape, work in mm (same as your previous working version)
+  // A3 landscape, work in mm; font size must be set in points
   const pdf = new jsPDF({ unit: 'mm', format: 'a3', orientation: 'l', hotfixes: ['px_scaling'] });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -605,11 +605,11 @@ async function makeTextOnlyPdfUrl(r){
     return m? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [128,128,128];
   };
 
-  // keep your original font-loading call exactly as before
+  // keep your original font-loading call (the one that worked)
   const usedFont = await ensurePdfFont(pdf, r.font_family || 'Poppins');
   if (!usedFont) pdf.setFont('helvetica','normal');
 
-  // ---- size math: px -> mm -> pt (the only change) ----
+  // ---- size math: px -> mm -> pt ----
   const PREVIEW_SCALE = 5; // your “Skala 1:5”
   const PX_TO_MM = 25.4 / 96; // 1px = 0.2645833 mm
   const MM_TO_PT = 72 / 25.4; // 1mm = 2.8346457 pt
@@ -644,15 +644,17 @@ async function makeTextOnlyPdfUrl(r){
   const lineHeightMm = targetMm * 1.2;
   const blockHeightMm = lineHeightMm * Math.max(0, lines.length - 1);
 
-  // vertical anchor (same logic as canvas)
+  // ---- vertical anchor: map canvas yBase to page height ----
+  const canvasH = Number(r.canvas_h) || 1350; // your preview canvas height
   const valign = r.valign || 'middle';
-  const offsetMm = (Number(r.valign_offset) || 0) * PREVIEW_SCALE * PX_TO_MM;
+  let yBasePx;
+  if (valign === 'top') yBasePx = 120;
+  else if (valign === 'bottom') yBasePx = canvasH - 120;
+  else yBasePx = canvasH / 2; // middle
+  yBasePx += (Number(r.valign_offset) || 0); // same offset you use on canvas
 
-  let yBaseMm;
-  if (valign === 'top') yBaseMm = 30;
-  else if (valign === 'bottom') yBaseMm = pageH - 30;
-  else yBaseMm = pageH / 2; // middle
-  yBaseMm += offsetMm;
+  // map pixel position to page (relative)
+  const yBaseMm = (yBasePx / canvasH) * pageH + (Number(r.valign_offset) || 0) * PREVIEW_SCALE * PX_TO_MM;
 
   const startY = yBaseMm - blockHeightMm / 2;
 
@@ -664,7 +666,7 @@ async function makeTextOnlyPdfUrl(r){
     pdf.text(line, x, y, { baseline: 'middle' });
   });
 
-  // upload & return public URL (unchanged)
+  // upload & return public URL
   const blob = pdf.output('blob');
   const key = `textonly/${r.id || crypto.randomUUID()}-${Date.now()}.pdf`;
   const { error: upErr } = await sb.storage.from(BUCKET).upload(key, blob, {
