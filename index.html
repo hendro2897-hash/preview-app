@@ -447,7 +447,8 @@ dueDate.addEventListener('change', ()=>{
 
   downloadPng.addEventListener('click', ()=>{
   if (!bg.complete || !bg.naturalWidth) return;
-
+console.log(canvas.width, canvas.height);
+    
   const SCALE = 5; // 5× the preview (1080×1350 → 5400×6750)
   const W = canvas.width * SCALE;
 const H = canvas.height * SCALE;
