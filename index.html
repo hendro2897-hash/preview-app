@@ -924,26 +924,7 @@ function renderAdminRows(rows){
     });
   });
 
-  // ✅ FIXED DOWNLOAD HANDLER
-  adminTbody.querySelectorAll('.download-textpdf').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const id = btn.dataset.id;
-      const input = adminTbody.querySelector(`.textonly-link[data-id="${id}"]`);
-      const r = adminRows.find(x=>String(x.id)===id);
-
-      if (!input?.value || input.value.startsWith('Failed')){
-        alert('PDF not ready');
-        return;
-      }
-
-      const a = document.createElement('a');
-      a.href = input.value;
-      a.download = buildPdfFileName(r);
-      a.click();
-    });
-  });
-
-  // ADMIN: download text-only PDF
+    // ADMIN: download text-only PDF
 adminTbody.querySelectorAll('.download-textpdf').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     const id = btn.dataset.id;
@@ -963,6 +944,106 @@ adminTbody.querySelectorAll('.download-textpdf').forEach(btn=>{
     a.target = '_blank';
     a.download = fileName;
     a.click();
+  });
+});
+// ✅ ADMIN PNG DOWNLOAD
+adminTbody.querySelectorAll('.dl-png').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
+    if(!r) return;
+
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = ()=>{
+      const SCALE = 5;
+      const baseW = r.canvas_w || 1080;
+      const baseH = r.canvas_h || 1350;
+
+      const W = baseW * SCALE;
+      const H = baseH * SCALE;
+
+      const c = document.createElement('canvas');
+      c.width = W;
+      c.height = H;
+
+      const x = c.getContext('2d');
+
+      // draw background
+      const rr = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+      const w = img.naturalWidth * rr;
+      const h = img.naturalHeight * rr;
+      const ox = (W - w) / 2;
+      const oy = (H - h) / 2;
+      x.drawImage(img, ox, oy, w, h);
+
+      // draw text
+      const size = (r.font_size || 36) * SCALE;
+      const y0 = ((r.valign === 'top'? 120 : r.valign === 'bottom'? baseH - 120 : baseH/2) + (r.valign_offset || 0)) * SCALE;
+
+      const lines = (r.preview_text || 'Your Text').split(/\r?\n/);
+      const lineHeight = size * 1.2;
+      const blockHeight = lineHeight * (lines.length - 1);
+      const startY = y0 - blockHeight/2;
+
+      x.save();
+      x.fillStyle = r.text_color || TEXT_COLOR;
+      x.textAlign = 'center';
+      x.textBaseline = 'middle';
+      x.font = `${size}px ${r.font_family || 'Poppins'}`;
+
+      if (r.direction === 'horizontal') {
+        lines.forEach((line,i)=> x.fillText(line, W/2, startY + i*lineHeight));
+      } else {
+        x.translate(W/2, y0);
+        x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2);
+        lines.forEach((line,i)=> x.fillText(line, 0, (i - (lines.length-1)/2) * lineHeight));
+      }
+
+      x.restore();
+
+      const a = document.createElement('a');
+      a.href = c.toDataURL('image/png');
+      a.download = r.filename || 'preview.png';
+      a.click();
+    };
+
+    img.src = pub.publicUrl + '?v=' + Date.now();
+  });
+});
+
+
+// ✅ ADMIN PDF DOWNLOAD
+adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
+    if(!r) return;
+
+    try{
+      const blob = await renderOrderToBlob(r);
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit:'pt', format:'a4' });
+
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
+      const img = URL.createObjectURL(blob);
+
+      const imgW = pageW - 80;
+      const imgH = imgW * (r.canvas_h / r.canvas_w);
+
+      pdf.addImage(img, 'PNG', 40, 80, imgW, imgH);
+
+      pdf.save(buildPdfFileName(r));
+
+      URL.revokeObjectURL(img);
+    }catch(e){
+      console.warn(e);
+      alert('PDF failed');
+    }
   });
 });
 }
