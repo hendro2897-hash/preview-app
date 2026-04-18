@@ -446,10 +446,9 @@ dueDate.addEventListener('change', ()=>{
   resetAlign.addEventListener('click', ()=>{ valignSel.value='middle'; valignOffset.value=0; valignOffsetVal.textContent='0'; draw(); });
 
   downloadPng.addEventListener('click', ()=>{
-  if (!bg.complete || !bg.naturalWidth) return;
-
-    console.log('Canvas size:', canvas.width, canvas.height);
-    
+      console.log('Canvas size:', canvas.width, canvas.height);
+    if (!bg.complete || !bg.naturalWidth) return;
+  
   const SCALE = 5; // 5× the preview (1080×1350 → 5400×6750)
   const W = canvas.width * SCALE;
 const H = canvas.height * SCALE;
