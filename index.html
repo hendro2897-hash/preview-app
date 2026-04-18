@@ -449,7 +449,8 @@ dueDate.addEventListener('change', ()=>{
   if (!bg.complete || !bg.naturalWidth) return;
 
   const SCALE = 5; // 5× the preview (1080×1350 → 5400×6750)
-  const W = 1080 * SCALE, H = 1350 * SCALE;
+  const W = canvas.width * SCALE;
+const H = canvas.height * SCALE;
 
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
