@@ -241,6 +241,9 @@
 
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
+  // 🔥 FORCE TRUE RESOLUTION
+canvas.width = 1080;
+canvas.height = 1350;
   const bg = document.getElementById('bg');
 
   const downloadPng = document.getElementById('downloadPng');
@@ -446,8 +449,7 @@ dueDate.addEventListener('change', ()=>{
   resetAlign.addEventListener('click', ()=>{ valignSel.value='middle'; valignOffset.value=0; valignOffsetVal.textContent='0'; draw(); });
 
   downloadPng.addEventListener('click', ()=>{
-      console.log('Canvas size:', canvas.width, canvas.height);
-    if (!bg.complete || !bg.naturalWidth) return;
+        if (!bg.complete || !bg.naturalWidth) return;
   
   const SCALE = 5; // 5× the preview (1080×1350 → 5400×6750)
 const W = 1080 * SCALE;
