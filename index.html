@@ -547,7 +547,12 @@ function capFirst(s){ return s? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
     const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
     const ts = new Date().toISOString().replace(/[:.]/g,'-');
-    pdf.save(`TYESO-order-${base}-${ts}.pdf`);
+const fileName = buildPdfFileName({
+  customer_name: custName.value,
+  due_date: dueDate.value
+});
+
+pdf.save(fileName);
   });
 
   submitBtn.addEventListener('click', async ()=>{
@@ -781,9 +786,10 @@ async function loadRecent(){
       <div style="margin-top:8px">
         <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
         <div class="inline">
-          <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
-          <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
-        </div>
+  <input class="textonly-link" type="text" readonly style="font-size:12px" />
+  <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
+  <button class="btn secondary download-textpdf" style="width:auto;padding:8px 12px">Download</button>
+</div>
       </div>
     </div>
   `).join('');
@@ -818,7 +824,8 @@ async function loadRecent(){
     const id = card.getAttribute('data-id');
     const r = data.find(x=>String(x.id)===String(id));
     const input = card.querySelector('.textonly-link');
-    const btn = card.querySelector('.copy-link');
+const btn = card.querySelector('.copy-link');
+const dlBtn = card.querySelector('.download-textpdf');
     if(!r || !input || !btn) continue;
     try { input.value = await makeTextOnlyPdfUrl(r); } catch { input.value = 'Failed to create link'; }
     btn.addEventListener('click', async ()=>{
@@ -828,6 +835,19 @@ async function loadRecent(){
   }
 }
 
+dlBtn.addEventListener('click', ()=>{
+  if (!input.value || input.value.startsWith('Failed')) {
+    alert('PDF not ready yet');
+    return;
+  }
+
+  const a = document.createElement('a');
+  a.href = input.value;
+  a.target = '_blank';
+  a.download = 'text-only.pdf';
+  a.click();
+});
+  
   function clearForm(){
     salesperson.value = '';
     custName.value = '';
@@ -894,6 +914,7 @@ function renderAdminRows(rows){
         <div class="inline">
           <input class="textonly-link" data-id="${r.id}" type="text" readonly placeholder="Generating…" style="font-size:12px;width:220px">
           <button class="btn secondary copy-link" data-id="${r.id}" style="width:auto;padding:6px 10px">Copy</button>
+       <button class="btn secondary download-textpdf" style="width:auto;padding:6px 10px">Download</button>
         </div>
       </td>
     </tr>
@@ -1002,8 +1023,9 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
 
       const base = (r.preview_text || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
       const ts = new Date().toISOString().replace(/[:.]/g,'-');
-      pdf.save(`TYESO-order-${base}-${ts}.pdf`);
-    } catch(e){
+const fileName = buildPdfFileName(r);
+pdf.save(fileName);
+          } catch(e){
       console.warn(e);
       alert('PDF failed');
     }
@@ -1018,6 +1040,7 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
   adminTbody.querySelectorAll('.copy-link').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const input = adminTbody.querySelector(`.textonly-link[data-id="${btn.dataset.id}"]`);
+      const dlBtn = btn.closest('td').querySelector('.download-textpdf');
       if (!input?.value) return;
       try { await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy',1200); }
       catch { input.select(); document.execCommand('copy'); }
@@ -1025,6 +1048,34 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
   });
 }
 
+function buildPdfFileName(r){
+  const name = (r.customer_name || 'customer')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^\w\-]/g, '');
+
+  const date = (r.due_date || new Date().toISOString().slice(0,10));
+
+  return `${name}_${date}.pdf`;
+}
+  
+  dlBtn.addEventListener('click', ()=>{
+  if (!input.value || input.value.startsWith('Failed')) {
+    alert('PDF not ready yet');
+    return;
+  }
+
+  const fileName = buildPdfFileName(r);
+
+  const a = document.createElement('a');
+  a.href = input.value;
+  a.target = '_blank';
+  a.download = fileName;
+  a.click();
+});
+
+  
+  
 function applyAdminFilters(){
   const s = (document.getElementById('fltSales')?.value || '').trim().toLowerCase();
   const c = (document.getElementById('fltCust')?.value || '').trim().toLowerCase();
