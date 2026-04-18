@@ -653,7 +653,7 @@ pdf.save(fileName);
       const vfsName = file.split('/').pop();
       pdf.addFileToVFS(vfsName, b64);
       pdf.addFont(vfsName, family, 'normal');
-      pdf.setFont(family,'normal');
+      pdf.setFont('helvetica','normal');
       return true;
     } catch (e) {
       console.warn('Font embed failed, using Helvetica:', family, e);
