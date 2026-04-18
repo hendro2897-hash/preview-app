@@ -450,11 +450,8 @@ dueDate.addEventListener('change', ()=>{
     if (!bg.complete || !bg.naturalWidth) return;
   
   const SCALE = 5; // 5× the preview (1080×1350 → 5400×6750)
-  const BASE_W = 1080;
-const BASE_H = 1350;
-
-const W = BASE_W * SCALE;
-const H = BASE_H * SCALE;
+const W = 1080 * SCALE;
+const H = 1350 * SCALE;
 
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
@@ -463,13 +460,8 @@ const H = BASE_H * SCALE;
   // white bg
   x.fillStyle = '#fff'; x.fillRect(0,0,W,H);
 
-  // draw product image cover-fit
-  const iw = bg.naturalWidth, ih = bg.naturalHeight;
-  const ir = iw / ih, cr = W / H;
-  let dw, dh, dx, dy;
-  if (ir > cr) { dh = H; dw = dh * ir; dx = (W - dw) / 2; dy = 0; }
-  else { dw = W; dh = dw / ir; dx = 0; dy = (H - dh) / 2; }
-  x.drawImage(bg, dx, dy, dw, dh);
+ // 🔥 FORCE FULL SIZE DRAW (no ratio distortion from source)
+x.drawImage(bg, 0, 0, W, H);
 
   // draw text (scale everything by SCALE)
   const raw = (previewText.value || '').trim() || 'Your Text';
