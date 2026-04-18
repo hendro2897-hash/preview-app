@@ -556,7 +556,6 @@ pdf.save(fileName);
   });
 
   submitBtn.addEventListener('click', async ()=>{
-    console.log('Saving canvas:', canvas.width, canvas.height);
   const missing = validateForm();
   if (missing.length) {
     alert('Please fill all required fields:\n- ' + missing.join('\n- '));
