@@ -820,10 +820,14 @@ async function loadRecent(){
     const input = card.querySelector('.textonly-link');
     const btn = card.querySelector('.copy-link');
     if(!r || !input || !btn) continue;
-    if (!r._textPdfUrl) {
-  r._textPdfUrl = await makeTextOnlyPdfUrl(r);
+    try {
+  if (!r._textPdfUrl) {
+    r._textPdfUrl = await makeTextOnlyPdfUrl(r);
+  }
+  input.value = r._textPdfUrl;
+} catch {
+  input.value = 'Failed to create link';
 }
-input.value = r._textPdfUrl; catch { input.value = 'Failed to create link'; }
     btn.addEventListener('click', async ()=>{
       try{ await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy link', 1200); }
       catch{ alert('Copy failed'); }
@@ -1017,10 +1021,14 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
   adminTbody.querySelectorAll('.textonly-link').forEach(async (input)=>{
     const r = adminRows.find(x=>String(x.id)===input.dataset.id);
     if(!r) return;
-    if (!r._textPdfUrl) {
-  r._textPdfUrl = await makeTextOnlyPdfUrl(r);
+   try {
+  if (!r._textPdfUrl) {
+    r._textPdfUrl = await makeTextOnlyPdfUrl(r);
+  }
+  input.value = r._textPdfUrl;
+} catch {
+  input.placeholder = 'Could not generate';
 }
-input.value = r._textPdfUrl; catch { input.placeholder = 'Could not generate'; }
   });
   adminTbody.querySelectorAll('.copy-link').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
@@ -1040,12 +1048,26 @@ input.value = r._textPdfUrl; catch { input.placeholder = 'Could not generate'; }
       const url = r._textPdfUrl || await makeTextOnlyPdfUrl(r);
 
       // force download (no open tab)
+      adminTbody.querySelectorAll('.dl-textpdf').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
+    if(!r) return;
+
+    try {
+      const url = r._textPdfUrl || await makeTextOnlyPdfUrl(r);
+
+      // ✅ FORCE DOWNLOAD (no new tab, always download)
+      const res = await fetch(url);
+      const blob = await res.blob();
+
       const a = document.createElement('a');
-      a.href = url;
+      a.href = URL.createObjectURL(blob);
       a.download = `text-only-${r.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      URL.revokeObjectURL(a.href);
 
     } catch(e){
       console.warn(e);
