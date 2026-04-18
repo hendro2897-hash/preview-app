@@ -942,6 +942,29 @@ function renderAdminRows(rows){
       a.click();
     });
   });
+
+  // ADMIN: download text-only PDF
+adminTbody.querySelectorAll('.download-textpdf').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const id = btn.dataset.id;
+
+    const input = adminTbody.querySelector(`.textonly-link[data-id="${id}"]`);
+    const r = adminRows.find(x => String(x.id) === String(id));
+
+    if (!input?.value || input.value.startsWith('Failed')) {
+      alert('PDF not ready');
+      return;
+    }
+
+    const fileName = buildPdfFileName(r);
+
+    const a = document.createElement('a');
+    a.href = input.value;
+    a.target = '_blank';
+    a.download = fileName;
+    a.click();
+  });
+});
 }
 
 function buildPdfFileName(r){
