@@ -448,53 +448,57 @@ dueDate.addEventListener('change', ()=>{
   bg.addEventListener('load', draw);
   resetAlign.addEventListener('click', ()=>{ valignSel.value='middle'; valignOffset.value=0; valignOffsetVal.textContent='0'; draw(); });
 
-  downloadPng.addEventListener('click', ()=>{
-        if (!bg.complete || !bg.naturalWidth) return;
-const TARGET_WIDTH = 5400;
-const SCALE = TARGET_WIDTH / canvas.width;
+downloadPng.addEventListener('click', () => {
+  if (!bg.complete || !bg.naturalWidth) return;
 
-const W = canvas.width * SCALE;
-const H = canvas.height * SCALE;
+  const SCALE = 5;
+  const W = canvas.width * SCALE;
+  const H = canvas.height * SCALE;
 
   const c = document.createElement('canvas');
-  c.width = W; c.height = H;
+  c.width = W;
+  c.height = H;
+
   const x = c.getContext('2d');
 
-  // white bg
-  x.fillStyle = '#fff'; x.fillRect(0,0,W,H);
+  // ✅ exact scaling (NO ratio math)
+  x.drawImage(bg, 0, 0, W, H);
 
- // 🔥 FORCE FULL SIZE DRAW (no ratio distortion from source)
-x.drawImage(bg, 0, 0, W, H);
-
-  // draw text (scale everything by SCALE)
   const raw = (previewText.value || '').trim() || 'Your Text';
   const lines = raw.split(/\r?\n/);
   const family = fontFamilySel.value || 'Poppins';
-  const size = (parseInt(fontSize.value,10) || 36) * SCALE;
+  const size = (parseInt(fontSize.value, 10) || 36) * SCALE;
   const dir = directionSel.value;
-  const yBase = (baseY() + parseInt(valignOffset.value,10)) * SCALE;
+
+  const yBase = baseY() + parseInt(valignOffset.value, 10);
+  const y = yBase * SCALE;
 
   x.save();
-  x.fillStyle = TEXT_COLOR;
+  x.fillStyle = 'rgb(128,128,128)';
   x.textAlign = 'center';
   x.textBaseline = 'middle';
   x.font = `${size}px ${family}`;
 
   const lineHeight = size * 1.2;
   const blockHeight = lineHeight * (lines.length - 1);
-  const startY = yBase - blockHeight/2;
+  const startY = y - blockHeight / 2;
 
   if (dir === 'horizontal') {
-    lines.forEach((line,i)=> x.fillText(line, W/2, startY + i*lineHeight));
+    lines.forEach((line, i) => {
+      x.fillText(line, W / 2, startY + i * lineHeight);
+    });
   } else {
-    x.translate(W/2, yBase);
-    x.rotate(dir === 'vertical-down' ? Math.PI/2 : -Math.PI/2);
-    lines.forEach((line,i)=> x.fillText(line, 0, (i - (lines.length-1)/2) * lineHeight));
+    x.translate(W / 2, y);
+    x.rotate(dir === 'vertical-down' ? Math.PI / 2 : -Math.PI / 2);
+    lines.forEach((line, i) => {
+      x.fillText(line, 0, (i - (lines.length - 1) / 2) * lineHeight);
+    });
   }
+
   x.restore();
 
   const a = document.createElement('a');
-  a.download = (fnameEl?.textContent || (previewText.value || 'preview') + '.png').replace(/\.png$/i,'') + '_5x.png';
+  a.download = 'preview_5x.png';
   a.href = c.toDataURL('image/png');
   a.click();
 });
@@ -727,10 +731,8 @@ async function renderOrderToBlob(r){
   const c = document.createElement('canvas');
   c.width = r.canvas_w || 1080; c.height = r.canvas_h || 1350;
   const x = c.getContext('2d');
-  const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
-  const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
-  const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
-  x.drawImage(img, ox, oy, w, h);
+  // draw EXACTLY to target size (no double scaling)
+x.drawImage(img, 0, 0, c.width, c.height);
   const size = r.font_size || 36;
   const y0 = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
   const raw = (r.preview_text || 'Your Text').trim();
@@ -913,36 +915,67 @@ function renderAdminRows(rows){
       if(!r) return;
       const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(r.product_path);
       const img = new Image(); img.crossOrigin = 'anonymous';
-      img.onload = ()=>{
-        const c = document.createElement('canvas');
-        const TARGET_WIDTH = 5400;
-const SCALE = TARGET_WIDTH / (r.canvas_w || 1080);
+     img.onload = () => {
+  const BASE_W = r.canvas_w || 1080;
+  const BASE_H = r.canvas_h || 1350;
 
-c.width = TARGET_WIDTH;
-c.height = (r.canvas_h || 1350) * SCALE;
-        const x = c.getContext('2d');
-        const rr = Math.max(c.width / img.naturalWidth, c.height / img.naturalHeight);
-        const w = img.naturalWidth * rr, h = img.naturalHeight * rr;
-        const ox = (c.width - w) / 2, oy = (c.height - h) / 2;
-        x.drawImage(img, ox, oy, w, h);
-        const size = (r.font_size || 36) * SCALE;
-        const y = (r.valign === 'top'? 120 : r.valign === 'bottom'? c.height - 120 : c.height/2) + (r.valign_offset || 0);
-        const raw = (r.preview_text || 'Your Text').trim();
-        const lines = raw.split(/\r?\n/);
-        const lineHeight = size * 1.2;
-        const blockHeight = lineHeight * (lines.length - 1);
-        const startY = y - blockHeight/2;
-        x.save(); x.fillStyle = r.text_color || TEXT_COLOR; x.textAlign = 'center'; x.textBaseline = 'middle';
-        x.font = `${size}px ${r.font_family || 'Poppins'}`;
-        if (r.direction === 'horizontal') {
-          lines.forEach((line,i)=> x.fillText(line, c.width/2, startY + i*lineHeight));
-        } else {
-          x.translate(c.width/2, y); x.rotate(r.direction === 'vertical-down'? Math.PI/2 : -Math.PI/2);
-          lines.forEach((line,i)=> x.fillText(line, 0, (i - (lines.length-1)/2) * lineHeight));
-        }
-        x.restore();
-        const a = document.createElement('a'); a.download = r.filename || 'preview.png'; a.href = c.toDataURL('image/png'); a.click();
-      };
+  const SCALE = 5;
+  const W = BASE_W * SCALE;
+  const H = BASE_H * SCALE;
+
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+
+  const x = c.getContext('2d');
+
+  // ✅ draw background EXACTLY scaled (no cover logic!)
+  x.drawImage(img, 0, 0, W, H);
+
+  // text
+  const size = (r.font_size || 36) * SCALE;
+
+  const yBase =
+    r.valign === 'top'
+      ? 120
+      : r.valign === 'bottom'
+      ? BASE_H - 120
+      : BASE_H / 2;
+
+  const y = (yBase + (r.valign_offset || 0)) * SCALE;
+
+  const raw = (r.preview_text || 'Your Text').trim();
+  const lines = raw.split(/\r?\n/);
+
+  const lineHeight = size * 1.2;
+  const blockHeight = lineHeight * (lines.length - 1);
+  const startY = y - blockHeight / 2;
+
+  x.save();
+  x.fillStyle = r.text_color || 'rgb(128,128,128)';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.font = `${size}px ${r.font_family || 'Poppins'}`;
+
+  if (r.direction === 'horizontal') {
+    lines.forEach((line, i) => {
+      x.fillText(line, W / 2, startY + i * lineHeight);
+    });
+  } else {
+    x.translate(W / 2, y);
+    x.rotate(r.direction === 'vertical-down' ? Math.PI / 2 : -Math.PI / 2);
+    lines.forEach((line, i) => {
+      x.fillText(line, 0, (i - (lines.length - 1) / 2) * lineHeight);
+    });
+  }
+
+  x.restore();
+
+  const a = document.createElement('a');
+  a.download = (r.filename || 'preview.png').replace(/\.png$/i, '') + '_5x.png';
+  a.href = c.toDataURL('image/png');
+  a.click();
+};
       img.src = pub.publicUrl + (pub.publicUrl.includes('?')? '&' : '?') + 'v=' + Date.now();
     });
   });
