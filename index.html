@@ -398,8 +398,8 @@ dueDate.addEventListener('change', ()=>{
   function baseY(){
     const h = canvas.height;
     const align = valignSel.value;
-    if(align === 'top') return 120;
-    if(align === 'bottom') return h - 120;
+    if(align === 'top') return 0;
+    if(align === 'bottom') return h;
     return h/2;
   }
   function draw(){
