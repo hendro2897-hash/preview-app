@@ -451,9 +451,9 @@ dueDate.addEventListener('change', ()=>{
 downloadPng.addEventListener('click', () => {
   if (!bg.complete || !bg.naturalWidth) return;
 
-  const SCALE = 5;
-  const W = canvas.width * SCALE;
-  const H = canvas.height * SCALE;
+  // ✅ TANPA 5X
+  const W = 1080;
+  const H = 1350;
 
   const c = document.createElement('canvas');
   c.width = W;
@@ -461,35 +461,38 @@ downloadPng.addEventListener('click', () => {
 
   const x = c.getContext('2d');
 
-  // ✅ exact scaling (NO ratio math)
+  // background
   x.drawImage(bg, 0, 0, W, H);
 
+  // text
   const raw = (previewText.value || '').trim() || 'Your Text';
   const lines = raw.split(/\r?\n/);
+
   const family = fontFamilySel.value || 'Poppins';
-  const size = (parseInt(fontSize.value, 10) || 36) * SCALE;
+  const size = parseInt(fontSize.value, 10) || 36;
+
   const dir = directionSel.value;
 
   const yBase = baseY() + parseInt(valignOffset.value, 10);
-  const y = yBase * SCALE;
 
   x.save();
-  x.fillStyle = 'rgb(128,128,128)';
+  x.fillStyle = TEXT_COLOR;
   x.textAlign = 'center';
   x.textBaseline = 'middle';
   x.font = `${size}px ${family}`;
 
   const lineHeight = size * 1.2;
   const blockHeight = lineHeight * (lines.length - 1);
-  const startY = y - blockHeight / 2;
+  const startY = yBase - blockHeight / 2;
 
   if (dir === 'horizontal') {
     lines.forEach((line, i) => {
       x.fillText(line, W / 2, startY + i * lineHeight);
     });
   } else {
-    x.translate(W / 2, y);
+    x.translate(W / 2, yBase);
     x.rotate(dir === 'vertical-down' ? Math.PI / 2 : -Math.PI / 2);
+
     lines.forEach((line, i) => {
       x.fillText(line, 0, (i - (lines.length - 1) / 2) * lineHeight);
     });
@@ -498,7 +501,7 @@ downloadPng.addEventListener('click', () => {
   x.restore();
 
   const a = document.createElement('a');
-  a.download = 'preview_5x.png';
+  a.download = 'preview.png';
   a.href = c.toDataURL('image/png');
   a.click();
 });
