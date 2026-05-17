@@ -1083,7 +1083,7 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
       ];
       info.forEach(l => { pdf.text(l, margin, y); y += 18; });
 
-      const dataUrl = c.toDataURL('image/png');
+      const dataUrl = c.toDataURL('image/jpeg', 1.0);
       const maxW = pageW - margin*2;
       const maxH = pageH - (y + 10) - margin;
       const aspect = c.height / c.width;
