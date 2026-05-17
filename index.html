@@ -501,7 +501,14 @@ downloadPng.addEventListener('click', () => {
   x.restore();
 
   const a = document.createElement('a');
-  a.download = 'preview.png';
+  const base =
+  (r.preview_text || 'preview')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .slice(0, 40);
+
+a.download = `${base}.png`;
   a.href = c.toDataURL('image/png');
   a.click();
 });
