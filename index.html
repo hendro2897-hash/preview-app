@@ -935,7 +935,7 @@ function renderAdminRows(rows){
   x.drawImage(img, 0, 0, W, H);
 
   // text
-  const size = (r.font_size || 36) * SCALE;
+ const size = r.font_size || 36;
 
   const yBase =
     r.valign === 'top'
@@ -944,7 +944,7 @@ function renderAdminRows(rows){
       ? BASE_H - 120
       : BASE_H / 2;
 
-  const y = (yBase + (r.valign_offset || 0)) * SCALE;
+  const y = yBase + (r.valign_offset || 0);
 
   const raw = (r.preview_text || 'Your Text').trim();
   const lines = raw.split(/\r?\n/);
@@ -974,7 +974,7 @@ function renderAdminRows(rows){
   x.restore();
 
   const a = document.createElement('a');
-  a.download = (r.filename || 'preview.png').replace(/\.png$/i, '') + '_5x.png';
+  a.download = 'preview.png';
   a.href = c.toDataURL('image/png');
   a.click();
 };
