@@ -1027,27 +1027,38 @@ img.onload = async () => {
 
   // =========================
   // CREATE PDF
-  // =========================
-  const { jsPDF } = window.jspdf;
+const { jsPDF } = window.jspdf;
 
-  const pdf = new jsPDF({
-    orientation: 'portrait',
-    unit: 'px',
-    format: [W, H]
-  });
+// NORMAL A4 PDF
+const pdf = new jsPDF({
+  orientation: 'portrait',
+  unit: 'mm',
+  format: 'a4'
+});
 
-  const dataUrl = c.toDataURL('image/png');
+const pageW = pdf.internal.pageSize.getWidth();
+const pageH = pdf.internal.pageSize.getHeight();
 
-  pdf.addImage(
-    dataUrl,
-    'PNG',
-    0,
-    0,
-    W,
-    H,
-    undefined,
-    'FAST'
-  );
+const margin = 5;
+
+const imgW = pageW - margin * 2;
+const imgH = (H / W) * imgW;
+
+const dataUrl = c.toDataURL('image/png');
+
+// IMPORTANT:
+// image inside = true 5400px
+// page size = normal A4
+pdf.addImage(
+  dataUrl,
+  'PNG',
+  margin,
+  margin,
+  imgW,
+  imgH,
+  undefined,
+  'FAST'
+);
 
   // =========================
   // FILE NAME
