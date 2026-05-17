@@ -95,7 +95,7 @@
               <th style="padding:8px">Customer</th>
               <th style="padding:8px">Due</th>
               <th style="padding:8px">Product</th>
-              <th style="padding:8px">5400 PDF</th>
+              <th style="padding:8px">5400 JPEG</th>
               <th style="padding:8px">PDF</th>
               <th style="padding:8px">Text-only link</th>
             </tr>
@@ -559,7 +559,7 @@ function capFirst(s){ return s? s.charAt(0).toUpperCase() + s.slice(1) : s; }
     if (imgH > maxH) { imgH = maxH; imgW = imgH / aspect; }
     pdf.addImage(dataUrl, 'PNG', margin, y + 10, imgW, imgH, undefined, 'FAST');
 
-    const base = (previewText.value || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
+    a.download = `${base}.png`;
     const ts = new Date().toISOString().replace(/[:.]/g,'-');
     pdf.save(`TYESO-order-${base}-${ts}.pdf`);
   });
@@ -787,7 +787,7 @@ async function loadRecent(){
       </div>
       <div class="muted">File: ${r.filename || '-'}</div>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px"> 
-        <button class="btn secondary dl-5400pdf" style="width:auto;padding:6px 10px" title="Save PNG">5400 PDF</button>
+        <button class="btn secondary dl-5400JPEG" style="width:auto;padding:6px 10px" title="Save PNG">5400 JPEG</button>
         <button class="btn secondary dl-pdf" style="width:auto;padding:6px 10px" title="Download PDF">📄 PDF</button>
       </div>
       <div style="margin-top:8px">
@@ -907,7 +907,7 @@ function renderAdminRows(rows){
       <td style="padding:8px">${(r.customer_name||'-').replace(/</g,'&lt;')}</td>
       <td style="padding:8px;white-space:nowrap">${r.due_date||'-'}</td>
       <td style="padding:8px">${(r.product_name||'-').replace(/\.[^.]+$/, '').replace(/</g,'&lt;')}</td>
-      <td style="padding:8px"><button class="btn secondary dl-5400pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">5400 PDF</button></td>
+      <td style="padding:8px"><button class="btn secondary dl-5400JPEG" data-id="${r.id}" style="padding:6px 10px;width:auto">5400 JPEG</button></td>
       <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
       <td style="padding:8px">
   <div class="inline">
@@ -919,7 +919,7 @@ function renderAdminRows(rows){
     </tr>
   `).join('');
 
-adminTbody.querySelectorAll('.dl-5400pdf').forEach(btn=>{
+adminTbody.querySelectorAll('.dl-5400JPEG').forEach(btn=>{
   btn.addEventListener('click', async ()=>{
 
     const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
@@ -933,90 +933,116 @@ adminTbody.querySelectorAll('.dl-5400pdf').forEach(btn=>{
 
     img.onload = async ()=>{
 
-      // TRUE 5400px
-      const W = 5400;
-      const H = 6750;
+  // FINAL SIZE
+  const W = 5400;
+  const H = 6750;
 
-      const c = document.createElement('canvas');
-      c.width = W;
-      c.height = H;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
 
-      const x = c.getContext('2d');
+  const x = c.getContext('2d');
 
-      // background
-      x.drawImage(img, 0, 0, W, H);
+  // IMPORTANT
+  x.imageSmoothingEnabled = true;
+  x.imageSmoothingQuality = 'high';
 
-      // text
-      const raw =
-        (r.preview_text || 'Your Text').trim();
+  // background
+  x.drawImage(img, 0, 0, W, H);
 
-      const lines =
-        raw.split(/\r?\n/);
+  // text
+  const raw = (r.preview_text || 'Your Text').trim();
+  const lines = raw.split(/\r?\n/);
 
-      const size =
-        (r.font_size || 36) * 5;
+  const family = r.font_family || 'Poppins';
 
-      const family =
-        r.font_family || 'Poppins';
+  // SCALE TEXT PROPERLY
+  const scale = W / 1080;
 
-      const yBase =
-        r.valign === 'top'
-          ? 120
-          : r.valign === 'bottom'
-          ? 1350 - 120
-          : 1350 / 2;
+  const size =
+    (r.font_size || 36) * scale;
 
-      const y =
-        (yBase + (r.valign_offset || 0)) * 5;
+  const yBase =
+    r.valign === 'top'
+      ? 120
+      : r.valign === 'bottom'
+      ? 1350 - 120
+      : 1350 / 2;
 
-      const lineHeight = size * 1.2;
+  const y =
+    (yBase + (r.valign_offset || 0)) * scale;
 
-      const blockHeight =
-        lineHeight * (lines.length - 1);
+  const lineHeight = size * 1.2;
 
-      const startY =
-        y - blockHeight / 2;
+  const blockHeight =
+    lineHeight * (lines.length - 1);
 
-      x.save();
+  const startY =
+    y - blockHeight / 2;
 
-      x.fillStyle =
-        r.text_color || 'rgb(128,128,128)';
+  x.save();
 
-      x.textAlign = 'center';
-      x.textBaseline = 'middle';
+  x.fillStyle =
+    r.text_color || 'rgb(128,128,128)';
 
-      x.font = `${size}px ${family}`;
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
 
-      lines.forEach((line, i)=>{
-        x.fillText(
-          line,
-          W/2,
-          startY + i*lineHeight
-        );
-      });
+  x.font = `${size}px ${family}`;
 
-      x.restore();
+  if (r.direction === 'horizontal') {
 
-      // IMPORTANT:
-      // DOWNLOAD PNG ONLY
-      // NO PDF
+  lines.forEach((line, i)=>{
+    x.fillText(
+      line,
+      W/2,
+      startY + i*lineHeight
+    );
+  });
 
-      const a = document.createElement('a');
+} else {
 
-      const base =
-        (r.preview_text || 'preview')
-          .trim()
-          .replace(/\s+/g, '_')
-          .replace(/[\\/:*?"<>|]/g, '')
-          .slice(0, 40);
+  x.translate(W/2, y);
 
-      a.download = `${base}_5400px.png`;
+  x.rotate(
+    r.direction === 'vertical-down'
+      ? Math.PI / 2
+      : -Math.PI / 2
+  );
 
-      a.href = c.toDataURL('image/png');
+  lines.forEach((line, i)=>{
+    x.fillText(
+      line,
+      0,
+      (i - (lines.length - 1)/2) * lineHeight
+    );
+  });
 
-      a.click();
+}
 
-    };
+  x.restore();
+
+  // VERY IMPORTANT
+  // JPEG avoids Corel PNG DPI bug
+  const dataUrl =
+    c.toDataURL('image/jpeg', 1.0);
+
+  const a = document.createElement('a');
+
+  const base =
+    (r.preview_text || 'preview')
+      .trim()
+      .replace(/\s+/g, '_')
+      .replace(/[\\/:*?"<>|]/g, '')
+      .slice(0, 40);
+
+  a.download = `${base}_5400.jpg`;
+
+  a.href = dataUrl;
+
+  a.click();
+
+};
 
     img.src =
       pub.publicUrl +
@@ -1089,7 +1115,7 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
       const aspect = c.height / c.width;
       let imgW = maxW, imgH = imgW * aspect;
       if (imgH > maxH) { imgH = maxH; imgW = imgH / aspect; }
-      pdf.addImage(dataUrl, 'PNG', margin, y + 10, imgW, imgH, undefined, 'FAST');
+      pdf.addImage(dataUrl, 'JPEG', margin, y + 10, imgW, imgH, undefined, 'FAST');
 
       const base = (r.preview_text || 'preview').trim().replace(/\s+/g,'_').slice(0,40);
       const ts = new Date().toISOString().replace(/[:.]/g,'-');
