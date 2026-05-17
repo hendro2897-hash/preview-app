@@ -95,7 +95,7 @@
               <th style="padding:8px">Customer</th>
               <th style="padding:8px">Due</th>
               <th style="padding:8px">Product</th>
-              <th style="padding:8px">PNG</th>
+              <th style="padding:8px">5400 PDF</th>
               <th style="padding:8px">PDF</th>
               <th style="padding:8px">Text-only link</th>
             </tr>
@@ -786,8 +786,8 @@ async function loadRecent(){
         - Due: ${r.due_date || '-'} • ${r.customer_name || '-'} (${r.customer_phone || '-'}) • Sales: ${r.salesperson || '-'}
       </div>
       <div class="muted">File: ${r.filename || '-'}</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-        <button class="btn secondary dl-png" style="width:auto;padding:6px 10px" title="Save PNG">🖼️ PNG</button>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px"> 
+        <button class="btn secondary dl-5400pdf" style="width:auto;padding:6px 10px" title="Save PNG">5400 PDF</button>
         <button class="btn secondary dl-pdf" style="width:auto;padding:6px 10px" title="Download PDF">📄 PDF</button>
       </div>
       <div style="margin-top:8px">
@@ -907,7 +907,7 @@ function renderAdminRows(rows){
       <td style="padding:8px">${(r.customer_name||'-').replace(/</g,'&lt;')}</td>
       <td style="padding:8px;white-space:nowrap">${r.due_date||'-'}</td>
       <td style="padding:8px">${(r.product_name||'-').replace(/\.[^.]+$/, '').replace(/</g,'&lt;')}</td>
-      <td style="padding:8px"><button class="btn secondary dl-png" data-id="${r.id}" style="padding:6px 10px;width:auto">PNG</button></td>
+      <td style="padding:8px"><button class="btn secondary dl-5400pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">5400 PDF</button></td>
       <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
       <td style="padding:8px">
   <div class="inline">
@@ -919,7 +919,7 @@ function renderAdminRows(rows){
     </tr>
   `).join('');
 
-  adminTbody.querySelectorAll('.dl-png').forEach(btn=>{
+  adminTbody.querySelectorAll('.dl-5400pdf').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
       if(!r) return;
