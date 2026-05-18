@@ -462,7 +462,18 @@ downloadPng.addEventListener('click', () => {
   const x = c.getContext('2d');
 
   // background
-  x.drawImage(bg, 0, 0, W, H);
+  const rr = Math.max(
+  W / bg.naturalWidth,
+  H / bg.naturalHeight
+);
+
+const dw = bg.naturalWidth * rr;
+const dh = bg.naturalHeight * rr;
+
+const ox = (W - dw) / 2;
+const oy = (H - dh) / 2;
+
+x.drawImage(bg, ox, oy, dw, dh);
 
   // text
   const raw = (previewText.value || '').trim() || 'Your Text';
@@ -502,7 +513,7 @@ downloadPng.addEventListener('click', () => {
 
   const a = document.createElement('a');
   const base =
-  (r.preview_text || 'preview')
+  (preview_text || 'preview')
     .trim()
     .replace(/\s+/g, '_')
     .replace(/[\\/:*?"<>|]/g, '')
@@ -933,6 +944,8 @@ adminTbody.querySelectorAll('.dl-5400JPEG').forEach(btn=>{
 
     img.onload = async ()=>{
 
+  await document.fonts.ready;
+
   // FINAL SIZE
   const W = 5400;
   const H = 6750;
@@ -948,7 +961,18 @@ adminTbody.querySelectorAll('.dl-5400JPEG').forEach(btn=>{
   x.imageSmoothingQuality = 'high';
 
   // background
-  x.drawImage(img, 0, 0, W, H);
+  const rr = Math.max(
+  W / img.naturalWidth,
+  H / img.naturalHeight
+);
+
+const dw = img.naturalWidth * rr;
+const dh = img.naturalHeight * rr;
+
+const ox = (W - dw) / 2;
+const oy = (H - dh) / 2;
+
+x.drawImage(img, ox, oy, dw, dh);
 
   // text
   const raw = (r.preview_text || 'Your Text').trim();
