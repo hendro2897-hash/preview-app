@@ -533,7 +533,6 @@ x.drawImage(bg, ox, oy, dw, dh);
 
   x.restore();
 
-  const a = document.createElement('a');
   const base =
   (previewText.value || 'preview')
     .trim()
@@ -541,11 +540,16 @@ x.drawImage(bg, ox, oy, dw, dh);
     .replace(/[\\/:*?"<>|]/g, '')
     .slice(0, 40);
 
-a.download = `${base}.png`;
-  a.href = c.toDataURL('image/png');
-  a.click();
-});
+const a = document.createElement('a');
 
+a.download = `${base}.png`;
+
+a.href = c.toDataURL('image/png');
+
+a.click();
+
+});
+  
 function capFirst(s){ return s? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
 ['custName','salesperson'].forEach(id=>{
