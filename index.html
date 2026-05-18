@@ -830,7 +830,7 @@ async function loadRecent(){
       </div>
       <div class="muted">File: ${r.filename || '-'}</div>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px"> 
-        <button class="btn secondary dl-5400JPEG" style="width:auto;padding:6px 10px" title="Save PNG">5400 JPEG</button>
+        <button class="btn secondary dl-5400JPEG" style="width:auto;padding:6px 10px" title="Save JPG">5400 JPEG</button>
         <button class="btn secondary dl-pdf" style="width:auto;padding:6px 10px" title="Download PDF">📄 PDF</button>
       </div>
       <div style="margin-top:8px">
@@ -843,18 +843,36 @@ async function loadRecent(){
     </div>
   `).join('');
 
-  recentList.querySelectorAll('.dl-png').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const id = btn.closest('[data-id]').getAttribute('data-id');
-      const r = data.find(x=>String(x.id)===String(id));
-      if(!r) return;
-      try{
-        const blob = await renderOrderToBlob(r);
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = r.filename || 'preview.png'; a.click(); URL.revokeObjectURL(a.href);
-      }catch(e){ console.warn(e); alert('PNG failed'); }
-    });
+  recentList.querySelectorAll('.dl-5400JPEG').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const id = btn.closest('[data-id]').getAttribute('data-id');
+    const r = data.find(x=>String(x.id)===String(id));
+    if(!r) return;
+
+    try{
+      const blob = await renderOrderToBlob(r);
+
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+
+      const base =
+        (r.preview_text || 'preview')
+          .trim()
+          .replace(/\s+/g,'_')
+          .replace(/[\\/:*?"<>|]/g,'');
+
+      a.download = `${base}_5400.jpeg`;
+
+      a.click();
+
+      URL.revokeObjectURL(a.href);
+
+    }catch(e){
+      console.warn(e);
+      alert('JPEG failed');
+    }
   });
+});
   recentList.querySelectorAll('.dl-pdf').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const id = btn.closest('[data-id]').getAttribute('data-id');
