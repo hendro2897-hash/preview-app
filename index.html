@@ -595,6 +595,12 @@ function capFirst(s){ return s? s.charAt(0).toUpperCase() + s.slice(1) : s; }
     let imgH = imgW * aspect;
     if (imgH > maxH) { imgH = maxH; imgW = imgH / aspect; }
     pdf.addImage(dataUrl, 'PNG', margin, y + 10, imgW, imgH, undefined, 'FAST');
+
+    const base = (previewText.value || 'preview')
+  .trim()
+  .replace(/\s+/g, '_')
+  .replace(/[\\/:*?"<>|]/g, '')
+  .slice(0, 40);
     
     const ts = new Date().toISOString().replace(/[:.]/g,'-');
     pdf.save(`TYESO-order-${base}-${ts}.pdf`);
