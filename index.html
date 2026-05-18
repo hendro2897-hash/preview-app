@@ -152,6 +152,17 @@
             <input id="fontSize" type="range" min="12" max="300" value="36" />
             <span id="fontSizeVal">36</span>
           </div>
+
+          <label>Text color</label>
+<select id="textColor">
+  <option value="rgb(128,128,128)">
+    Gray Default
+  </option>
+
+  <option value="rgb(210,210,210)">
+    Gray Muda
+  </option>
+</select>
           <label>Text direction</label>
           <select id="direction">
             <option value="horizontal">Horizontal</option>
@@ -234,6 +245,7 @@
   const fontSize = document.getElementById('fontSize');
   const fontSizeVal = document.getElementById('fontSizeVal');
   const directionSel = document.getElementById('direction');
+  const textColorSel = document.getElementById('textColor');
   const valignSel = document.getElementById('valign');
   const valignOffset = document.getElementById('valignOffset');
   const valignOffsetVal = document.getElementById('valignOffsetVal');
@@ -267,7 +279,7 @@ canvas.height = 1350;
   const adminTbody = document.getElementById('adminTbody');
   const backToAdminHomeFromApp = document.getElementById('backToAdminHomeFromApp');
 
-  const TEXT_COLOR = 'rgb(128,128,128)';
+  const DEFAULT_TEXT_COLOR = 'rgb(128,128,128)';
   const BUCKET = 'products';
 
 // lock due date to D+3
@@ -420,7 +432,8 @@ dueDate.addEventListener('change', ()=>{
     const yBase = baseY() + parseInt(valignOffset.value,10);
 
     ctx.save();
-    ctx.fillStyle = TEXT_COLOR;
+    ctx.fillStyle =
+  textColorSel.value || DEFAULT_TEXT_COLOR;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `${size}px ${family}`;
@@ -442,7 +455,15 @@ dueDate.addEventListener('change', ()=>{
     }
     ctx.restore();
   }
-  [previewText, fontFamilySel, fontSize, directionSel, valignSel, valignOffset].forEach(el=>{
+  [
+  previewText,
+  fontFamilySel,
+  fontSize,
+  directionSel,
+  valignSel,
+  valignOffset,
+  textColorSel
+].forEach(el=>{
     el.addEventListener('input', ()=>{ fontSizeVal.textContent = fontSize.value; valignOffsetVal.textContent = valignOffset.value; draw(); });
   });
   bg.addEventListener('load', draw);
@@ -487,7 +508,8 @@ x.drawImage(bg, ox, oy, dw, dh);
   const yBase = baseY() + parseInt(valignOffset.value, 10);
 
   x.save();
-  x.fillStyle = TEXT_COLOR;
+  x.fillStyle =
+  textColorSel.value || DEFAULT_TEXT_COLOR;
   x.textAlign = 'center';
   x.textBaseline = 'middle';
   x.font = `${size}px ${family}`;
@@ -609,7 +631,8 @@ function capFirst(s){ return s? s.charAt(0).toUpperCase() + s.slice(1) : s; }
       direction: directionSel.value,
       valign: valignSel.value,
       valign_offset: parseInt(valignOffset.value,10) || 0,
-      text_color: TEXT_COLOR,
+      text_color:
+  textColorSel.value || DEFAULT_TEXT_COLOR,
       canvas_w: canvas.width,
       canvas_h: canvas.height,
       filename
