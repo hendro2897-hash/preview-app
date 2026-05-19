@@ -98,6 +98,7 @@
               <th style="padding:8px">5400 JPEG</th>
               <th style="padding:8px">PDF</th>
               <th style="padding:8px">Text-only link</th>
+              <th style="padding:8px">Delete</th>
             </tr>
           </thead>
           <tbody id="adminTbody">
@@ -1196,6 +1197,15 @@ function renderAdminRows(rows){
     <button class="btn dl-textpdf" data-id="${r.id}" style="width:auto;padding:6px 10px">⬇️</button>
   </div>
 </td>
+<td style="padding:8px">
+  <button
+    class="btn secondary del-row"
+    data-id="${r.id}"
+    style="padding:6px 10px;width:auto;background:#ffebeb;color:#c00"
+  >
+    Delete
+  </button>
+</td>
     </tr>
   `).join('');
 
@@ -1466,6 +1476,55 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
     }
   });
 });
+  adminTbody.querySelectorAll('.del-row').forEach(btn=>{
+
+  btn.addEventListener('click', async ()=>{
+
+    const r =
+      adminRows.find(
+        x => String(x.id) === btn.dataset.id
+      );
+
+    if(!r) return;
+
+    const ok = confirm(
+      `Delete this submission?\n\n` +
+      `Customer: ${r.customer_name}\n` +
+      `Text: ${r.preview_text}`
+    );
+
+    if(!ok) return;
+
+    try {
+
+      const { error } =
+        await sb
+          .from('orders')
+          .delete()
+          .eq('id', r.id);
+
+      if(error) throw error;
+
+      // remove row instantly
+      adminRows =
+        adminRows.filter(
+          x => x.id !== r.id
+        );
+
+      applyAdminFilters();
+
+      alert('Deleted.');
+
+    } catch(e){
+
+      console.warn(e);
+
+      alert(
+        'Delete failed: ' + e.message
+      );
+    }
+  });
+});
 }
   
 function applyAdminFilters(){
@@ -1587,9 +1646,9 @@ async function loadAdminTable(){
 
     for (const f of files) {
       const ext = (f.name.split('.').pop() || 'bin').toLowerCase();
-      const key = `uploads/${crypto.randomUUID()}.${ext}`;
+      const key = `uploads/${f.name}`;
 
-      const { error: upErr } = await sb.storage.from(BUCKET).upload(key, f, { upsert: false });
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(key, f, { upsert: true });
       if (upErr) {
         console.error(upErr);
         adminStatus.textContent = 'Upload failed: ' + upErr.message;
