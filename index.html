@@ -1639,55 +1639,75 @@ async function loadAdminTable(){
   });
 
   uploadBtn.addEventListener('click', async () => {
-    const files = fileInput.files;
-    if (!files ||!files.length) return;
 
-    adminStatus.textContent = 'Uploading…';
+  const files = fileInput.files;
 
-    for (const f of files) {
-      const ext = (f.name.split('.').pop() || 'bin').toLowerCase();
-      const key = `uploads/${f.name}`;
+  if (!files || !files.length) return;
 
-      const { error: upErr } = await sb.storage.from(BUCKET).upload(key, f, { upsert: true });
-      if (upErr) {
-        console.error(upErr);
-        adminStatus.textContent = 'Upload failed: ' + upErr.message;
+  adminStatus.textContent = 'Uploading…';
+
+  for (const f of files) {
+
+    const key = `uploads/${f.name}`;
+
+    const { error: upErr } =
+      await sb.storage
+        .from(BUCKET)
+        .upload(key, f, {
+          upsert: true
+        });
+
+    if (upErr) {
+
+      console.error(upErr);
+
+      adminStatus.textContent =
+        'Upload failed: ' + upErr.message;
+
+      return;
+    }
+
+    // check existing row first
+    const { data: existing } =
+      await sb
+        .from('files')
+        .select('id')
+        .eq('storage_key', key)
+        .maybeSingle();
+
+    if (!existing) {
+
+      const { error: dbErr } =
+        await sb
+          .from('files')
+          .insert({
+            storage_key: key,
+            display_name: f.name
+          });
+
+      if (dbErr) {
+
+        console.error(dbErr);
+
+        adminStatus.textContent =
+          'DB insert failed: ' +
+          dbErr.message;
+
         return;
       }
-
-      // check existing row first
-const { data: existing } = await sb
-  .from('files')
-  .select('id')
-  .eq('storage_key', key)
-  .maybeSingle();
-
-if (!existing) {
-
-  const { error: dbErr } =
-    await sb
-      .from('files')
-      .insert({
-        storage_key: key,
-        display_name: f.name
-      });
-
-  if (dbErr) {
-    console.error(dbErr);
-
-    adminStatus.textContent =
-      'DB insert failed: ' +
-      dbErr.message;
-
-    return;
-  }
-}
-     
-    adminStatus.textContent = 'Done.';
-    fileInput.value = '';
-    await loadProducts();
     }
-  });
+  }
+
+  // ✅ PINDAH KE LUAR LOOP
+
+  adminStatus.textContent =
+    `Done. ${files.length} files uploaded.`;
+
+  fileInput.value = '';
+
+  await loadProducts();
+
+});
 
   refreshProducts.addEventListener('click', loadProducts);
 
