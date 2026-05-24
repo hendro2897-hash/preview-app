@@ -1655,17 +1655,34 @@ async function loadAdminTable(){
         return;
       }
 
-      const { error: dbErr } = await sb.from('files').insert({
+      // check existing row first
+const { data: existing } = await sb
+  .from('files')
+  .select('id')
+  .eq('storage_key', key)
+  .maybeSingle();
+
+if (!existing) {
+
+  const { error: dbErr } =
+    await sb
+      .from('files')
+      .insert({
         storage_key: key,
         display_name: f.name
       });
-      if (dbErr) {
-        console.error(dbErr);
-        adminStatus.textContent = 'DB insert failed: ' + dbErr.message;
-        return;
-      }
-    }
 
+  if (dbErr) {
+    console.error(dbErr);
+
+    adminStatus.textContent =
+      'DB insert failed: ' +
+      dbErr.message;
+
+    return;
+  }
+}
+     
     adminStatus.textContent = 'Done.';
     fileInput.value = '';
     await loadProducts();
