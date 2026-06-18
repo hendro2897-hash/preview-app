@@ -1189,7 +1189,7 @@ function renderAdminRows(rows){
       <td style="padding:8px">${(r.customer_name||'-').replace(/</g,'&lt;')}</td>
       <td style="padding:8px;white-space:nowrap">${r.due_date||'-'}</td>
       <td style="padding:8px">${(r.product_name||'-').replace(/\.[^.]+$/, '').replace(/</g,'&lt;')}</td>
-      <td style="padding:8px;max-width:250px;word-break:break-word">${(r.preview_text||'-').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</td>
+      <td style="padding:8px;max-width:400px;word-break:break-word">${(r.preview_text||'-').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</td>
       <td style="padding:8px"><button class="btn secondary dl-5400JPEG" data-id="${r.id}" style="padding:6px 10px;width:auto">5400 JPEG</button></td>
       <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
       <td style="padding:8px"><button class="btn dl-textpdf" data-id="${r.id}" style="width:auto;padding:6px 10px">Download</button></td>
