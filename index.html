@@ -103,7 +103,7 @@
             </tr>
           </thead>
           <tbody id="adminTbody">
-            <tr><td colspan="8" style="padding:10px;color:#666">Loading…</td></tr>
+            <tr><td colspan="10" style="padding:10px;color:#666">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -1179,7 +1179,7 @@ recentList.querySelectorAll('.dl-pdf').forEach(btn=>{
 
 function renderAdminRows(rows){
   if (!rows || !rows.length){
-    adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">No submissions yet.</td></tr>`;
+    adminTbody.innerHTML = `<tr><td colspan="10" style="padding:10px;color:#666">No submissions yet.</td></tr>`;
     return;
   }
   adminTbody.innerHTML = rows.map(r => `
@@ -1508,14 +1508,14 @@ function applyAdminFilters(){
 }
 
 async function loadAdminTable(){
-  adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#666">Loading…</td></tr>`;
+  adminTbody.innerHTML = `<tr><td colspan="10" style="padding:10px;color:#666">Loading…</td></tr>`;
   const { data, error } = await sb
   .from('orders')
   .select('id, created_at, salesperson, customer_name, customer_phone, due_date, product_name, product_path, preview_text, font_family, font_size, direction, valign, valign_offset, text_color, canvas_w, canvas_h, filename')
   .order('created_at', { ascending: false })
   .limit(1000);
   if (error){
-    adminTbody.innerHTML = `<tr><td colspan="8" style="padding:10px;color:#c00">Failed: ${error.message}</td></tr>`;
+    adminTbody.innerHTML = `<tr><td colspan="10" style="padding:10px;color:#c00">Failed: ${error.message}</td></tr>`;
     return;
   }
   adminRows = data || [];
