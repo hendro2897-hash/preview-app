@@ -1192,24 +1192,8 @@ function renderAdminRows(rows){
       <td style="padding:8px;max-width:250px;word-break:break-word">${(r.preview_text||'-').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</td>
       <td style="padding:8px"><button class="btn secondary dl-5400JPEG" data-id="${r.id}" style="padding:6px 10px;width:auto">5400 JPEG</button></td>
       <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
-      <td style="padding:8px">
-<td style="padding:8px">
-  <button
-    class="btn dl-textpdf"
-    data-id="${r.id}"
-    style="width:auto;padding:6px 10px">
-    Download
-  </button>
-</td>
-<td style="padding:8px">
-  <button
-    class="btn secondary del-row"
-    data-id="${r.id}"
-    style="padding:6px 10px;width:auto;background:#ffebeb;color:#c00"
-  >
-    Delete
-  </button>
-</td>
+      <td style="padding:8px"><button class="btn dl-textpdf" data-id="${r.id}" style="width:auto;padding:6px 10px">Download</button></td>
+      <td style="padding:8px"><button class="btn secondary del-row" data-id="${r.id}" style="padding:6px 10px;width:auto;background:#ffebeb;color:#c00">Delete</button></td>
     </tr>
   `).join('');
 
