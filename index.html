@@ -98,7 +98,7 @@
               <th style="padding:8px">Text</th>
               <th style="padding:8px">5400 JPEG</th>
               <th style="padding:8px">PDF</th>
-              <th style="padding:8px">Text-only link</th>
+              <th style="padding:8px">Text PDF</th>
               <th style="padding:8px">Delete</th>
             </tr>
           </thead>
@@ -1193,11 +1193,13 @@ function renderAdminRows(rows){
       <td style="padding:8px"><button class="btn secondary dl-5400JPEG" data-id="${r.id}" style="padding:6px 10px;width:auto">5400 JPEG</button></td>
       <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
       <td style="padding:8px">
-  <div class="inline">
-    <input class="textonly-link" data-id="${r.id}" type="text" readonly placeholder="Generating…" style="font-size:12px;width:180px">
-    <button class="btn secondary copy-link" data-id="${r.id}" style="width:auto;padding:6px 10px">Copy</button>
-    <button class="btn dl-textpdf" data-id="${r.id}" style="width:auto;padding:6px 10px">⬇️</button>
-  </div>
+<td style="padding:8px">
+  <button
+    class="btn dl-textpdf"
+    data-id="${r.id}"
+    style="width:auto;padding:6px 10px">
+    Download
+  </button>
 </td>
 <td style="padding:8px">
   <button
@@ -1432,26 +1434,6 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
   });
 });
 
-  adminTbody.querySelectorAll('.textonly-link').forEach(async (input)=>{
-    const r = adminRows.find(x=>String(x.id)===input.dataset.id);
-    if(!r) return;
-   try {
-  if (!r._textPdfUrl) {
-    r._textPdfUrl = await makeTextOnlyPdfUrl(r);
-  }
-  input.value = r._textPdfUrl;
-} catch {
-  input.placeholder = 'Could not generate';
-}
-  });
-  adminTbody.querySelectorAll('.copy-link').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const input = adminTbody.querySelector(`.textonly-link[data-id="${btn.dataset.id}"]`);
-      if (!input?.value) return;
-      try { await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy',1200); }
-      catch { input.select(); document.execCommand('copy'); }
-    });
-  });
   adminTbody.querySelectorAll('.dl-textpdf').forEach(btn=>{
   btn.addEventListener('click', async ()=>{
     const r = adminRows.find(x=>String(x.id)===btn.dataset.id);
