@@ -90,6 +90,7 @@
         <table id="adminTable" style="width:100%;border-collapse:collapse;font-size:14px">
           <thead>
             <tr style="text-align:left;border-bottom:1px solid #eee">
+              <th style="padding:8px;width:60px">No</th>
               <th style="padding:8px">Created</th>
               <th style="padding:8px">Salesperson</th>
               <th style="padding:8px">Customer</th>
@@ -1184,8 +1185,9 @@ function renderAdminRows(rows){
     adminTbody.innerHTML = `<tr><td colspan="10" style="padding:10px;color:#666">No submissions yet.</td></tr>`;
     return;
   }
-  adminTbody.innerHTML = rows.map(r => `
+  adminTbody.innerHTML = rows.map((r, index) => `
     <tr style="border-bottom:1px solid #f0f0f0">
+      <td style="padding:8px;text-align:center;font-weight:bold">${index + 1}</td>
       <td style="padding:8px;width:400px;word-break:break-word">${fmtDate(r.created_at)}</td>
       <td style="padding:8px">${(r.salesperson||'-').replace(/</g,'&lt;')}</td>
       <td style="padding:8px">${(r.customer_name||'-').replace(/</g,'&lt;')}</td>
