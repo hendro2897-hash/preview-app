@@ -838,13 +838,6 @@ async function loadRecent(){
         <button class="btn secondary dl-5400JPEG" style="width:auto;padding:6px 10px" title="Save JPG">5400 JPEG</button>
         <button class="btn secondary dl-pdf" style="width:auto;padding:6px 10px" title="Download PDF">📄 PDF</button>
       </div>
-      <div style="margin-top:8px">
-        <label class="muted" style="display:block;margin-bottom:4px">Link for text-only</label>
-        <div class="inline">
-          <input class="textonly-link" type="text" readonly placeholder="Generating link…" style="font-size:12px" />
-          <button class="btn secondary copy-link" style="width:auto;padding:8px 12px">Copy link</button>
-        </div>
-      </div>
     </div>
   `).join('');
 
@@ -1110,26 +1103,6 @@ recentList.querySelectorAll('.dl-pdf').forEach(btn=>{
   });
 });
 
-  const cards = Array.from(recentList.querySelectorAll('[data-id]'));
-  for (const card of cards){
-    const id = card.getAttribute('data-id');
-    const r = data.find(x=>String(x.id)===String(id));
-    const input = card.querySelector('.textonly-link');
-    const btn = card.querySelector('.copy-link');
-    if(!r || !input || !btn) continue;
-    try {
-  if (!r._textPdfUrl) {
-    r._textPdfUrl = await makeTextOnlyPdfUrl(r);
-  }
-  input.value = r._textPdfUrl;
-} catch {
-  input.value = 'Failed to create link';
-}
-    btn.addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(input.value); btn.textContent = 'Copied!'; setTimeout(()=>btn.textContent='Copy link', 1200); }
-      catch{ alert('Copy failed'); }
-    });
-  }
 }
 
   function clearForm(){
