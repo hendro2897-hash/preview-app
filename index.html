@@ -1401,11 +1401,17 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
     if(!r) return;
 
     try {
-      const url = r._textPdfUrl || await makeTextOnlyPdfUrl(r);
+      if (!r._textPdfUrl) {
+    r._textPdfUrl = await makeTextOnlyPdfUrl(r);
+}
+const url = r._textPdfUrl;
 
       const res = await fetch(url);
       const blob = await res.blob();
 
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      
       const base =
   (r.preview_text || 'preview')
     .trim()
