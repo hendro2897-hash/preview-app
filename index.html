@@ -1406,9 +1406,16 @@ adminTbody.querySelectorAll('.dl-pdf').forEach(btn=>{
       const res = await fetch(url);
       const blob = await res.blob();
 
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `text-only-${r.id}.pdf`;
+      const base =
+  (r.preview_text || 'preview')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 50);
+
+a.download = `text-only-${base}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
