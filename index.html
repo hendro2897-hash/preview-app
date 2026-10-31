@@ -94,9 +94,11 @@
               <th style="padding:8px">Created</th>
               <th style="padding:8px">Salesperson</th>
               <th style="padding:8px">Customer</th>
+              <th style="padding:8px">Phone</th>
               <th style="padding:8px">Due</th>
               <th style="padding:8px">Product</th>
               <th style="padding:8px">Text</th>
+              <th style="padding:8px">Font type</th>
               <th style="padding:8px">5400 JPEG</th>
               <th style="padding:8px">PDF</th>
               <th style="padding:8px">Text PDF</th>
@@ -104,7 +106,7 @@
             </tr>
           </thead>
           <tbody id="adminTbody">
-            <tr><td colspan="10" style="padding:10px;color:#666">Loading…</td></tr>
+            <tr><td colspan="13" style="padding:10px;color:#666">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -1155,7 +1157,7 @@ recentList.querySelectorAll('.dl-pdf').forEach(btn=>{
 
 function renderAdminRows(rows){
   if (!rows || !rows.length){
-    adminTbody.innerHTML = `<tr><td colspan="10" style="padding:10px;color:#666">No submissions yet.</td></tr>`;
+    adminTbody.innerHTML = `<tr><td colspan="13" style="padding:10px;color:#666">No submissions yet.</td></tr>`;
     return;
   }
   adminTbody.innerHTML = rows.map((r, index) => `
@@ -1164,9 +1166,11 @@ function renderAdminRows(rows){
       <td style="padding:8px;width:400px;word-break:break-word">${fmtDate(r.created_at)}</td>
       <td style="padding:8px">${(r.salesperson||'-').replace(/</g,'&lt;')}</td>
       <td style="padding:8px">${(r.customer_name||'-').replace(/</g,'&lt;')}</td>
+      <td style="padding:8px;white-space:nowrap">${String(r.customer_phone||'-').replace(/</g,'&lt;')}</td>
       <td style="padding:8px;white-space:nowrap">${r.due_date||'-'}</td>
       <td style="padding:8px;width:400px;word-break:break-word">${(r.product_name||'-').replace(/\.[^.]+$/, '').replace(/</g,'&lt;')}</td>
       <td style="padding:8px;width:650px;word-break:break-word">${(r.preview_text||'-').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</td>
+      <td style="padding:8px;white-space:nowrap">${String(r.font_family||'-').replace(/</g,'&lt;')}</td>
       <td style="padding:8px"><button class="btn secondary dl-5400JPEG" data-id="${r.id}" style="padding:6px 10px;width:auto">5400 JPEG</button></td>
       <td style="padding:8px"><button class="btn secondary dl-pdf" data-id="${r.id}" style="padding:6px 10px;width:auto">PDF</button></td>
       <td style="padding:8px"><button class="btn dl-textpdf" data-id="${r.id}" style="width:auto;padding:6px 10px">Download</button></td>
@@ -1498,14 +1502,14 @@ function applyAdminFilters(){
 }
 
 async function loadAdminTable(){
-  adminTbody.innerHTML = `<tr><td colspan="10" style="padding:10px;color:#666">Loading…</td></tr>`;
+  adminTbody.innerHTML = `<tr><td colspan="13" style="padding:10px;color:#666">Loading…</td></tr>`;
   const { data, error } = await sb
   .from('orders')
   .select('id, created_at, salesperson, customer_name, customer_phone, due_date, product_name, product_path, preview_text, font_family, font_size, direction, valign, valign_offset, text_color, canvas_w, canvas_h, filename')
   .order('created_at', { ascending: false })
   .limit(1000);
   if (error){
-    adminTbody.innerHTML = `<tr><td colspan="10" style="padding:10px;color:#c00">Failed: ${error.message}</td></tr>`;
+    adminTbody.innerHTML = `<tr><td colspan="13" style="padding:10px;color:#c00">Failed: ${error.message}</td></tr>`;
     return;
   }
   adminRows = data || [];
